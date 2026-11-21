@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">通知闹钟</string>
+
+    <style name="Theme.NotiAlarm" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">#FF3D5AFE</item>
+    </style>
+
+    <!-- 半透明：亮屏时像一个盖在当前界面上的弹窗 -->
+    <style name="Theme.NotiAlarm.Alarm" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#FF8C9EFF</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
+
+    <style name="SectionTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:layout_marginBottom">6dp</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="FieldLabel">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:alpha">0.75</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+</resources>

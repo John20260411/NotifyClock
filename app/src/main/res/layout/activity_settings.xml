@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="闹钟" />
+
+        <TextView style="@style/FieldLabel" android:text="默认提前多少分钟响铃（逗号分隔，0 = 准时，最多 9 个）" />
+
+        <EditText
+            android:id="@+id/etOffsets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="60,10,0"
+            android:inputType="text" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swSound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="响铃" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swVibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="振动" />
+
+        <TextView
+            android:id="@+id/tvSound"
+            style="@style/FieldLabel" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPickRingtone"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="系统铃声" />
+
+            <Button
+                android:id="@+id/btnPickMusic"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="本地音乐" />
+
+            <Button
+                android:id="@+id/btnPreview"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="试听" />
+        </LinearLayout>
+
+        <TextView style="@style/FieldLabel" android:text="音量跟随" />
+
+        <RadioGroup
+            android:id="@+id/rgVolume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbAlarmVolume"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="闹钟音量" />
+
+            <RadioButton
+                android:id="@+id/rbMediaVolume"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="媒体音量" />
+        </RadioGroup>
+
+        <TextView style="@style/FieldLabel" android:text="每次响铃持续多少分钟（0 = 一直响到你确认，最长 30 分钟）" />
+
+        <EditText
+            android:id="@+id/etRingMinutes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+
+        <TextView style="@style/FieldLabel" android:text="弹窗里的延后选项（分钟，逗号分隔；弹窗里还可以自定义）" />
+
+        <EditText
+            android:id="@+id/etSnooze"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="5,10,30,60"
+            android:inputType="text" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="免打扰" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swQuiet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="开启免打扰时段" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnQuietStart"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/btnQuietEnd"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/FieldLabel"
+            android:text="落在免打扰时段里的提前提醒：如果时段结束时事件还没开始，改到时段结束时响；如果事件本身就在时段里（比如早上 6 点出发），改到时段开始前（睡前）响。" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/swQuietKeep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="事件在免打扰时段里时，“准时”那次仍然响" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="识别方式" />
+
+        <RadioGroup
+            android:id="@+id/rgMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/rbHybrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="规则优先，识别不了再问大模型（推荐）" />
+
+            <RadioButton
+                android:id="@+id/rbLlm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="大模型优先（更准，更费钱）" />
+
+            <RadioButton
+                android:id="@+id/rbRule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="只用本地规则（离线、免费）" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/FieldLabel"
+            android:text="大模型接口（OpenAI 兼容格式，DeepSeek / 通义千问 / Kimi / 智谱都可以）。只有像是含时间的消息才会发过去。" />
+
+        <EditText
+            android:id="@+id/etUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://api.deepseek.com"
+            android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/etKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="API Key（sk-…）"
+            android:inputType="textPassword" />
+
+        <EditText
+            android:id="@+id/etModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="模型名，如 deepseek-chat"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/btnTestLlm"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="测试大模型" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="监听的 App" />
+
+        <TextView
+            android:id="@+id/appsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="正在读取已安装的 App…" />
+
+        <LinearLayout
+            android:id="@+id/appsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="保存" />
+    </LinearLayout>
+</ScrollView>
