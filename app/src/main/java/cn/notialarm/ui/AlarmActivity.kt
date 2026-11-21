@@ -1,6 +1,7 @@
 package cn.notialarm.ui
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
@@ -8,6 +9,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -15,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import cn.notialarm.Fmt
 import cn.notialarm.Notifier
 import cn.notialarm.R
+import cn.notialarm.SourceLauncher
 import cn.notialarm.alarm.AlarmScheduler
 import cn.notialarm.alarm.AlarmService
 import cn.notialarm.data.Prefs
@@ -23,7 +26,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-/** 到点时的确认弹窗：知道了 / 延后一段时间。锁屏和亮屏都会弹出。 */
+/** 到点时的全屏确认页：知道了 / 确认不再提醒 / 打开原通知 / 延后。 */
 class AlarmActivity : AppCompatActivity() {
 
     private val finisher: () -> Unit = { runOnUiThread { finish() } }
@@ -42,12 +45,12 @@ class AlarmActivity : AppCompatActivity() {
         setContentView(R.layout.activity_alarm)
         setFinishOnTouchOutside(false)
 
-        // 必须明确选择，不能按返回键糊弄过去
-        onBackPressedDispatcher.addCallback(this) {
-            Toast.makeText(this@AlarmActivity, "请选择“知道了”或延后时间", Toast.LENGTH_SHORT).show()
-        }
-
         findViewById<Button>(R.id.btnStop).setOnClickListener { send(AlarmService.ACTION_STOP) }
+        findViewById<Button>(R.id.btnConfirm).setOnClickListener { send(AlarmService.ACTION_CONFIRM) }
+        findViewById<Button>(R.id.btnOpen).setOnClickListener { openOriginal() }
+
+        // 返回键等同“知道了”：以前会 Toast 拦住用户，横屏时又点不到按钮，等于退不出去。
+        onBackPressedDispatcher.addCallback(this) { send(AlarmService.ACTION_STOP) }
 
         val chips = findViewById<ChipGroup>(R.id.snoozeChips)
         for (min in Prefs(this).snoozeOptions) {
@@ -61,6 +64,7 @@ class AlarmActivity : AppCompatActivity() {
             setOnClickListener { askCustomSnooze() }
         })
 
+        layoutActions()
         AlarmService.onStopped = finisher
         bind(intent)
     }
@@ -70,14 +74,64 @@ class AlarmActivity : AppCompatActivity() {
         bind(intent)
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        layoutActions()
+    }
+
+    /** 横屏时三个按钮并排、矮一点；竖屏时上下排，保证都在屏幕内。 */
+    private fun layoutActions() {
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val row = findViewById<LinearLayout>(R.id.actionRow)
+        val buttons = listOf(
+            findViewById<Button>(R.id.btnStop),
+            findViewById<Button>(R.id.btnConfirm),
+            findViewById<Button>(R.id.btnOpen),
+        )
+        row.orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+        buttons.forEachIndexed { i, b ->
+            b.textSize = if (landscape) 14f else 16f
+            val lp = if (landscape) {
+                LinearLayout.LayoutParams(0, dp(46), 1f).apply {
+                    marginStart = if (i == 0) 0 else dp(6)
+                }
+            } else {
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)).apply {
+                    topMargin = if (i == 0) 0 else dp(6)
+                }
+            }
+            b.layoutParams = lp
+        }
+    }
+
     private fun bind(intent: Intent) {
         id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
         val r = ReminderStore.get(this, id) ?: run { finish(); return }
         findViewById<TextView>(R.id.tvTitle).text = r.title
-        findViewById<TextView>(R.id.tvWhen).text = Notifier.whenText(r)
-        findViewById<TextView>(R.id.tvSource).apply {
-            text = if (r.text.isBlank()) "" else "${r.source}：${r.text.take(200)}"
-            visibility = if (r.text.isBlank()) View.GONE else View.VISIBLE
+        findViewById<TextView>(R.id.tvWhen).text = buildString {
+            append(Notifier.whenText(r))
+            if (r.timeAssumed) append("\n原文只写了日期，时间按默认值估算")
+        }
+        findViewById<TextView>(R.id.tvSource).text = "来自 ${r.source}"
+        findViewById<TextView>(R.id.tvBody).text = r.text.ifBlank { "（这条提醒没有正文）" }
+
+        if (intent.getBooleanExtra(Notifier.EXTRA_JUMP, false)) {
+            intent.removeExtra(Notifier.EXTRA_JUMP)
+            openOriginal()
+        }
+    }
+
+    private fun openOriginal() {
+        val r = ReminderStore.get(this, id)
+        if (r == null) {
+            finish()
+            return
+        }
+        if (SourceLauncher.open(this, r)) {
+            // 已经跳到微信/QQ，这一次响铃就可以停了
+            send(AlarmService.ACTION_STOP)
+        } else {
+            Toast.makeText(this, "原通知已消失，无法跳回；可以到应用列表里打开来源 App", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -103,11 +157,16 @@ class AlarmActivity : AppCompatActivity() {
             Intent(this, AlarmService::class.java).setAction(action)
                 .putExtra(AlarmScheduler.EXTRA_ID, id).putExtra(AlarmService.EXTRA_MINUTES, minutes)
         )
-        if (action == AlarmService.ACTION_SNOOZE) {
-            Toast.makeText(this, "将在${Fmt.minutes(minutes)}后再次提醒", Toast.LENGTH_SHORT).show()
+        when (action) {
+            AlarmService.ACTION_SNOOZE ->
+                Toast.makeText(this, "将在${Fmt.minutes(minutes)}后再次提醒", Toast.LENGTH_SHORT).show()
+            AlarmService.ACTION_CONFIRM ->
+                Toast.makeText(this, "已确认，这条提醒不会再响", Toast.LENGTH_SHORT).show()
         }
         finish()
     }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     override fun onDestroy() {
         if (AlarmService.onStopped === finisher) AlarmService.onStopped = null

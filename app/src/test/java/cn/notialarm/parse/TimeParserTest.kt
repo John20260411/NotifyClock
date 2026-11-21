@@ -41,6 +41,16 @@ class TimeParserTest {
     @Test fun wechatPrefix() = assertEquals(dt(11, 1, 15), at("[3条]张三: 明天3点组会"))
     @Test fun sunday() = assertEquals(dt(11, 1, 9), at("星期天交作业"))
     @Test fun earlyMorning() = assertEquals(dt(11, 1, 6), at("明天凌晨6点出发"))
+    @Test fun nextMonthDay() = assertEquals(dt(11, 5, 9), at("下个月5号交材料"))
+    @Test fun monthEndDeadline() = assertEquals(dt(10, 31, 23, 59), at("月底前提交申请表"))
+    @Test fun nextMonthEnd() = assertEquals(dt(11, 30, 23, 59), at("下个月底前交报告"))
+    @Test fun weekdayDeadline() = assertEquals(dt(11, 6, 23, 59), at("周五前交报告"))
+
+    @Test fun assumedTimeIsMarked() {
+        val r = TimeParser.parse("12月1号交实验报告", now)!!
+        assertEquals(true, r.assumed)
+        assertEquals(false, TimeParser.parse("11月5日 23:59 截止", now)!!.assumed)
+    }
 
     @Test fun notTime() = assertNull(at("快一点"))
     @Test fun plainChat() = assertNull(at("收到"))

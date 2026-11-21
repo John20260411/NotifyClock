@@ -13,11 +13,27 @@ data class Reminder(
     val source: String,
     val text: String,
     val createdAt: Long = System.currentTimeMillis(),
+    /** 来源应用包名，用于黑名单和“打开原通知”的兜底跳转。 */
+    val pkg: String = "",
+    /** 会话/群聊名（微信、QQ 的群名或联系人名），用于按会话屏蔽。 */
+    val conversation: String = "",
+    /** 系统通知的 key，用来找回原通知的 contentIntent。 */
+    val notifKey: String = "",
+    /** > 0 表示已归档；列表默认不显示归档项。 */
+    val archivedAt: Long = 0L,
+    /** 用户点过“确认，不再提醒”。 */
+    val confirmed: Boolean = false,
+    /** 原文只有日期没有时刻，时间按 09:00 估的。 */
+    val timeAssumed: Boolean = false,
 ) {
+    val archived: Boolean get() = archivedAt > 0
+
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("title", title).put("time", time.toString())
         .put("offsets", JSONArray(offsets)).put("source", source).put("text", text)
         .put("createdAt", createdAt)
+        .put("pkg", pkg).put("conversation", conversation).put("notifKey", notifKey)
+        .put("archivedAt", archivedAt).put("confirmed", confirmed).put("timeAssumed", timeAssumed)
 
     companion object {
         fun fromJson(o: JSONObject): Reminder {
@@ -26,6 +42,12 @@ data class Reminder(
                 o.getInt("id"), o.getString("title"), LocalDateTime.parse(o.getString("time")),
                 List(a.length()) { a.getInt(it) }, o.optString("source"), o.optString("text"),
                 o.optLong("createdAt"),
+                pkg = o.optString("pkg"),
+                conversation = o.optString("conversation"),
+                notifKey = o.optString("notifKey"),
+                archivedAt = o.optLong("archivedAt"),
+                confirmed = o.optBoolean("confirmed"),
+                timeAssumed = o.optBoolean("timeAssumed"),
             )
         }
     }
@@ -33,6 +55,12 @@ data class Reminder(
 
 /** 提醒的持久化：数量不大，直接用 SharedPreferences 里的一段 JSON。 */
 object ReminderStore {
+    /** 事件结束后再留 2 小时，方便回看；之后自动进归档。 */
+    const val ARCHIVE_GRACE_MINUTES = 120L
+    /** 归档最多保留 120 条，总记录最多 200 条，避免列表无限增长。 */
+    const val MAX_ARCHIVED = 120
+    const val MAX_TOTAL = 200
+
     private fun sp(ctx: Context) = ctx.getSharedPreferences("reminders", Context.MODE_PRIVATE)
 
     @Synchronized
@@ -40,6 +68,15 @@ object ReminderStore {
         val arr = JSONArray(sp(ctx).getString("list", "[]"))
         return List(arr.length()) { Reminder.fromJson(arr.getJSONObject(it)) }.sortedBy { it.time }
     }
+
+    /** 待处理：按时间升序，最早要响的排最前。 */
+    @Synchronized
+    fun active(ctx: Context): List<Reminder> = all(ctx).filter { !it.archived }
+
+    /** 归档：最近归档的排最前。 */
+    @Synchronized
+    fun archived(ctx: Context): List<Reminder> =
+        all(ctx).filter { it.archived }.sortedByDescending { it.archivedAt }
 
     fun get(ctx: Context, id: Int): Reminder? = all(ctx).firstOrNull { it.id == id }
 
@@ -58,21 +95,86 @@ object ReminderStore {
     }
 
     fun isDuplicate(ctx: Context, title: String, time: LocalDateTime): Boolean =
-        all(ctx).any { it.time == time && (it.title.contains(title) || title.contains(it.title)) }
+        active(ctx).any { it.time == time && (it.title.contains(title) || title.contains(it.title)) }
 
-    /** 清理一周前就已经结束的提醒。 */
+    /**
+     * 把已经结束（事件时间 + 2 小时）或用户确认过的提醒归档。
+     * @return 这次新归档的 id
+     */
+    @Synchronized
+    fun archiveExpired(ctx: Context, now: LocalDateTime = LocalDateTime.now()): List<Int> {
+        val stamp = System.currentTimeMillis()
+        val ids = mutableListOf<Int>()
+        val out = all(ctx).map { r ->
+            if (!r.archived && (r.confirmed || r.time.plusMinutes(ARCHIVE_GRACE_MINUTES).isBefore(now))) {
+                ids += r.id
+                r.copy(archivedAt = stamp)
+            } else {
+                r
+            }
+        }
+        if (ids.isNotEmpty()) write(ctx, out)
+        return ids
+    }
+
+    @Synchronized
+    fun archive(ctx: Context, id: Int): Reminder? {
+        val r = get(ctx, id) ?: return null
+        if (r.archived) return r
+        val n = r.copy(archivedAt = System.currentTimeMillis())
+        write(ctx, all(ctx).filter { it.id != id } + n)
+        return n
+    }
+
+    /** “确认，不再提醒”：立刻归档，并记住这是用户确认过的。 */
+    @Synchronized
+    fun confirm(ctx: Context, id: Int): Reminder? {
+        val r = get(ctx, id) ?: return null
+        val n = r.copy(archivedAt = System.currentTimeMillis(), confirmed = true)
+        write(ctx, all(ctx).filter { it.id != id } + n)
+        return n
+    }
+
+    /** 从归档恢复；时间已经过去的话挪到 10 分钟后，免得恢复了个不会再响的闹钟。 */
+    @Synchronized
+    fun restore(ctx: Context, id: Int): Reminder? {
+        val r = get(ctx, id) ?: return null
+        val now = LocalDateTime.now()
+        val time = if (r.time.isBefore(now)) now.plusMinutes(10).withSecond(0).withNano(0) else r.time
+        val n = r.copy(time = time, archivedAt = 0L, confirmed = false)
+        write(ctx, all(ctx).filter { it.id != id } + n)
+        return n
+    }
+
+    /** 清理过久的记录：待处理只留 7 天内的，归档只留 30 天内的。 */
     @Synchronized
     fun purgeOld(ctx: Context) {
-        val cutoff = LocalDateTime.now().minusDays(7)
+        val now = LocalDateTime.now()
+        val activeCutoff = now.minusDays(7)
+        val archiveCutoff = System.currentTimeMillis() - 30L * 24 * 3600 * 1000
         val list = all(ctx)
-        val kept = list.filter { it.time.isAfter(cutoff) }
+        val kept = list.filter {
+            if (it.archived) it.archivedAt >= archiveCutoff else it.time.isAfter(activeCutoff)
+        }
         if (kept.size != list.size) write(ctx, kept)
     }
 
     private fun write(ctx: Context, list: List<Reminder>) {
+        val pruned = prune(list)
         val arr = JSONArray()
-        list.forEach { arr.put(it.toJson()) }
+        pruned.forEach { arr.put(it.toJson()) }
         sp(ctx).edit().putString("list", arr.toString()).apply()
+    }
+
+    /** 归档优先淘汰最旧的；待处理永远保留（除非超过总上限）。 */
+    private fun prune(list: List<Reminder>): List<Reminder> {
+        val archived = list.filter { it.archived }
+            .sortedByDescending { it.archivedAt }
+            .take(MAX_ARCHIVED)
+        val room = (MAX_TOTAL - archived.size).coerceAtLeast(0)
+        val active = list.filter { !it.archived }
+        val keptActive = if (active.size > room) active.sortedBy { it.createdAt }.takeLast(room) else active
+        return keptActive + archived
     }
 }
 

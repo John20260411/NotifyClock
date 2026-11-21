@@ -16,6 +16,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import cn.notialarm.Notifier
+import cn.notialarm.Reminders
 import cn.notialarm.data.Prefs
 import cn.notialarm.data.ReminderStore
 import cn.notialarm.ui.AlarmActivity
@@ -33,14 +34,20 @@ class AlarmService : Service() {
         val id = intent?.getIntExtra(AlarmScheduler.EXTRA_ID, -1) ?: -1
         when (intent?.action) {
             ACTION_STOP -> {
-                Notifier.cancelCreated(this, id)
+                Notifier.recordedSummary(this)
                 stopAll(closeUi = true)
                 return START_NOT_STICKY
             }
             ACTION_SNOOZE -> {
-                val minutes = intent.getIntExtra(EXTRA_MINUTES, Prefs(this).snoozeOptions.first())
+                val minutes = intent.getIntExtra(EXTRA_MINUTES, Prefs(this).snoozeOptions.firstOrNull() ?: 10)
                 AlarmScheduler.snooze(this, id, minutes)
-                Notifier.cancelCreated(this, id)
+                Notifier.recordedSummary(this)
+                stopAll(closeUi = true)
+                return START_NOT_STICKY
+            }
+            ACTION_CONFIRM -> {
+                // 用户确认这件事已经处理完，以后不再提醒
+                Reminders.confirm(this, id)
                 stopAll(closeUi = true)
                 return START_NOT_STICKY
             }
@@ -60,6 +67,7 @@ class AlarmService : Service() {
         }
 
         currentId = id
+        ringingId = id
         stopRinging()
         val prefs = Prefs(this)
         if (prefs.sound) startSound(prefs)
@@ -130,6 +138,7 @@ class AlarmService : Service() {
     }
 
     private fun stopAll(closeUi: Boolean) {
+        ringingId = -1
         handler.removeCallbacksAndMessages(null)
         stopRinging()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -146,7 +155,11 @@ class AlarmService : Service() {
     companion object {
         const val ACTION_STOP = "cn.notialarm.STOP"
         const val ACTION_SNOOZE = "cn.notialarm.SNOOZE"
+        const val ACTION_CONFIRM = "cn.notialarm.CONFIRM"
         const val EXTRA_MINUTES = "minutes"
+
+        /** 正在响铃的提醒 id，-1 表示没有在响。 */
+        @Volatile var ringingId = -1
 
         /** 弹窗显示时设置，用户在通知上点了“知道了/延后”后关掉弹窗。 */
         var onStopped: (() -> Unit)? = null

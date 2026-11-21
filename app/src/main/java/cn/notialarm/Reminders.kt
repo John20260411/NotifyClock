@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import cn.notialarm.alarm.AlarmScheduler
+import cn.notialarm.data.Incoming
 import cn.notialarm.data.Prefs
 import cn.notialarm.data.Reminder
 import cn.notialarm.data.ReminderStore
@@ -18,6 +19,37 @@ object Reminders {
     /** 主界面在前台时设置，用来刷新列表。 */
     var onChange: (() -> Unit)? = null
 
+    /** 从通知创建：保留包名、群聊、通知 key，供黑名单和“打开原通知”使用。 */
+    fun create(
+        ctx: Context,
+        incoming: Incoming,
+        title: String,
+        time: LocalDateTime,
+        timeAssumed: Boolean,
+        offsets: List<Int> = Prefs(ctx).defaultOffsets,
+    ): Reminder? {
+        if (ReminderStore.isDuplicate(ctx, title, time)) return null
+        val r = Reminder(
+            id = ReminderStore.newId(ctx),
+            title = title,
+            time = time,
+            offsets = offsets,
+            source = incoming.source.ifBlank { incoming.app }.ifBlank { "通知" },
+            text = incoming.text,
+            pkg = incoming.pkg,
+            conversation = incoming.conversation,
+            notifKey = incoming.notifKey,
+            timeAssumed = timeAssumed,
+        )
+        ReminderStore.save(ctx, r)
+        AlarmScheduler.schedule(ctx, r)
+        Prefs(ctx).lastCreatedId = r.id
+        Notifier.recordedSummary(ctx)
+        changed()
+        return r
+    }
+
+    /** 主界面手动新建。 */
     fun create(
         ctx: Context, title: String, time: LocalDateTime, source: String, text: String,
         offsets: List<Int> = Prefs(ctx).defaultOffsets,
@@ -26,31 +58,84 @@ object Reminders {
         val r = Reminder(ReminderStore.newId(ctx), title, time, offsets, source, text)
         ReminderStore.save(ctx, r)
         AlarmScheduler.schedule(ctx, r)
-        Notifier.created(ctx, r)
+        Prefs(ctx).lastCreatedId = r.id
+        Notifier.recordedSummary(ctx)
         changed()
         return r
     }
 
     fun update(ctx: Context, r: Reminder) {
         AlarmScheduler.cancel(ctx, r.id)
-        ReminderStore.save(ctx, r)
-        AlarmScheduler.schedule(ctx, r)
+        val n = r.copy(archivedAt = 0L, confirmed = false)
+        ReminderStore.save(ctx, n)
+        AlarmScheduler.schedule(ctx, n)
+        Notifier.recordedSummary(ctx)
         changed()
     }
 
     fun delete(ctx: Context, id: Int) {
         AlarmScheduler.cancel(ctx, id)
         ReminderStore.delete(ctx, id)
-        Notifier.cancelCreated(ctx, id)
+        Notifier.recordedSummary(ctx)
         changed()
+    }
+
+    fun archive(ctx: Context, id: Int) {
+        AlarmScheduler.cancel(ctx, id)
+        ReminderStore.archive(ctx, id)
+        Notifier.recordedSummary(ctx)
+        changed()
+    }
+
+    /** “确认，不再提醒”：取消所有闹钟并立刻归档。 */
+    fun confirm(ctx: Context, id: Int) {
+        AlarmScheduler.cancel(ctx, id)
+        ReminderStore.confirm(ctx, id)
+        Notifier.recordedSummary(ctx)
+        changed()
+    }
+
+    fun restore(ctx: Context, id: Int) {
+        val n = ReminderStore.restore(ctx, id) ?: return
+        AlarmScheduler.schedule(ctx, n)
+        Notifier.recordedSummary(ctx)
+        changed()
+    }
+
+    /** 主界面/监听服务连上时调用：自动归档过期项、清理旧数据、刷新汇总通知。 */
+    fun housekeeping(ctx: Context) {
+        val newIds = ReminderStore.archiveExpired(ctx)
+        newIds.forEach { AlarmScheduler.cancel(ctx, it) }
+        ReminderStore.purgeOld(ctx)
+        Notifier.recordedSummary(ctx)
+        if (newIds.isNotEmpty()) changed()
+    }
+
+    /** 设置里新增黑名单后，把已经记下的、命中的提醒批量归档。 */
+    fun archiveBlacklisted(ctx: Context): Int {
+        val prefs = Prefs(ctx)
+        var n = 0
+        ReminderStore.active(ctx).forEach { r ->
+            if (prefs.blacklistHit(r.pkg, r.conversation, r.text) != null) {
+                AlarmScheduler.cancel(ctx, r.id)
+                ReminderStore.archive(ctx, r.id)
+                n++
+            }
+        }
+        if (n > 0) {
+            Notifier.recordedSummary(ctx)
+            changed()
+        }
+        return n
     }
 
     fun rescheduleAll(ctx: Context) {
         ReminderStore.purgeOld(ctx)
         ReminderStore.all(ctx).forEach {
             AlarmScheduler.cancel(ctx, it.id)
-            AlarmScheduler.schedule(ctx, it)
+            if (!it.archived) AlarmScheduler.schedule(ctx, it)
         }
+        Notifier.recordedSummary(ctx)
         changed()
     }
 

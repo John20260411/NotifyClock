@@ -12,6 +12,7 @@ import cn.notialarm.alarm.AlarmService
 import cn.notialarm.alarm.UndoReceiver
 import cn.notialarm.data.Prefs
 import cn.notialarm.data.Reminder
+import cn.notialarm.data.ReminderStore
 import cn.notialarm.ui.AlarmActivity
 import cn.notialarm.ui.MainActivity
 import java.time.Duration
@@ -23,8 +24,9 @@ object Notifier {
     const val CH_MISSED = "missed"
     const val ID_ALARM = 1
     const val ID_LISTENER_TEST = 2
-    private const val ID_CREATED_BASE = 100_000
+    const val ID_RECORDED = 3
     const val EXTRA_EDIT_ID = "edit_id"
+    const val EXTRA_JUMP = "jump"
 
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -38,8 +40,8 @@ object Notifier {
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_CREATED, "自动创建的提醒", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "识别到通知里的时间并创建提醒后，通知你一声，可撤销"
+            NotificationChannel(CH_CREATED, "提醒汇总", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "所有待处理提醒合成一条通知，新提醒不会再刷屏"
             }
         )
         nm.createNotificationChannel(
@@ -47,29 +49,46 @@ object Notifier {
         )
     }
 
-    fun created(ctx: Context, r: Reminder) {
-        val undo = PendingIntent.getBroadcast(
-            ctx, r.id, Intent(ctx, UndoReceiver::class.java).putExtra(AlarmScheduler.EXTRA_ID, r.id),
+    /**
+     * 所有待处理提醒只用一条通知展示（最多 6 行）。
+     * 以前每识别一条就发一条通知，通知栏很快被占满。
+     */
+    fun recordedSummary(ctx: Context) {
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        val active = ReminderStore.active(ctx)
+        if (active.isEmpty()) {
+            nm.cancel(ID_RECORDED)
+            return
+        }
+        val style = NotificationCompat.InboxStyle()
+            .setBigContentTitle("通知闹钟：${active.size} 条待处理")
+        active.take(6).forEach { style.addLine("${Fmt.dateTime(it.time)} · ${it.title}") }
+        if (active.size > 6) style.addLine("还有 ${active.size - 6} 条…")
+
+        val open = PendingIntent.getActivity(
+            ctx, 0, Intent(ctx, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val edit = PendingIntent.getActivity(
-            ctx, r.id, Intent(ctx, MainActivity::class.java).putExtra(EXTRA_EDIT_ID, r.id),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val ring = Fmt.ringTimes(r.time, AlarmScheduler.plan(ctx, r))
-        val n = NotificationCompat.Builder(ctx, CH_CREATED)
+        val first = active.first()
+        val b = NotificationCompat.Builder(ctx, CH_CREATED)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setContentTitle("已创建提醒：${r.title}")
-            .setContentText("${Fmt.dateTime(r.time)} · $ring")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(
-                "${Fmt.dateTime(r.time)}\n$ring\n来自 ${r.source}：${r.text.take(100)}"
-            ))
-            .setContentIntent(edit)
-            .addAction(0, "撤销", undo)
-            .addAction(0, "修改", edit)
+            .setContentTitle("通知闹钟：${active.size} 条待处理")
+            .setContentText("${Fmt.dateTime(first.time)} · ${first.title}")
+            .setStyle(style)
+            .setContentIntent(open)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
-            .build()
-        notify(ctx, ID_CREATED_BASE + r.id, n)
+
+        val lastId = Prefs(ctx).lastCreatedId
+        if (lastId > 0 && ReminderStore.get(ctx, lastId)?.archived == false) {
+            val undo = PendingIntent.getBroadcast(
+                ctx, ID_RECORDED,
+                Intent(ctx, UndoReceiver::class.java).putExtra(AlarmScheduler.EXTRA_ID, lastId),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            b.addAction(0, "撤销最近一条", undo)
+        }
+        notify(ctx, ID_RECORDED, b.build())
     }
 
     /** 发一条自己的通知，看监听服务能不能收到。 */
@@ -83,9 +102,6 @@ object Notifier {
         notify(ctx, ID_LISTENER_TEST, n)
     }
 
-    fun cancelCreated(ctx: Context, id: Int) =
-        ctx.getSystemService(NotificationManager::class.java).cancel(ID_CREATED_BASE + id)
-
     fun alarm(ctx: Context, r: Reminder?): Notification {
         val full = PendingIntent.getActivity(
             ctx, 0,
@@ -94,10 +110,12 @@ object Notifier {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val body = r?.let { "${whenText(it)}\n来自 ${it.source}\n\n${it.text}" }.orEmpty()
         val b = NotificationCompat.Builder(ctx, CH_ALARM)
             .setSmallIcon(R.drawable.ic_stat_alarm)
             .setContentTitle(r?.title ?: "提醒")
             .setContentText(r?.let { whenText(it) } ?: "")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -120,16 +138,28 @@ object Notifier {
             .setSmallIcon(R.drawable.ic_stat_alarm)
             .setContentTitle("⏰ 未确认：${r.title}")
             .setContentText(whenText(r))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("${whenText(r)}\n来自 ${r.source}\n\n${r.text}"))
             .setContentIntent(open)
             .setAutoCancel(true)
         addButtons(ctx, b, r.id)
-        notify(ctx, ID_CREATED_BASE + r.id, b.build())
+        notify(ctx, ID_ALARM, b.build())
     }
 
     private fun addButtons(ctx: Context, b: NotificationCompat.Builder, id: Int) {
-        val snooze = Prefs(ctx).snoozeOptions.first()
-        b.addAction(0, "知道了", serviceIntent(ctx, AlarmService.ACTION_STOP, id))
-        b.addAction(0, "延后${Fmt.minutes(snooze)}", serviceIntent(ctx, AlarmService.ACTION_SNOOZE, id, snooze))
+        val stop = serviceIntent(ctx, AlarmService.ACTION_STOP, id)
+        val confirm = serviceIntent(ctx, AlarmService.ACTION_CONFIRM, id)
+        val open = PendingIntent.getActivity(
+            ctx, id + 700_000,
+            Intent(ctx, AlarmActivity::class.java)
+                .putExtra(AlarmScheduler.EXTRA_ID, id)
+                .putExtra(EXTRA_JUMP, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        b.addAction(0, "知道了", stop)
+        b.addAction(0, "确认，不再提醒", confirm)
+        b.addAction(0, "打开原通知", open)
+        // 延后放在全屏页里选时长，通知栏只保留最常用的三个动作。
     }
 
     /** “还有 10 分钟 · 明天 周日 15:00” / “已开始 3 分钟 · …” */

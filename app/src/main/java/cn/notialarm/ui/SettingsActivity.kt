@@ -11,11 +11,15 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioGroup
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -88,6 +92,9 @@ class SettingsActivity : AppCompatActivity() {
         val etUrl = findViewById<EditText>(R.id.etUrl)
         val etKey = findViewById<EditText>(R.id.etKey)
         val etModel = findViewById<EditText>(R.id.etModel)
+        val swMonitorAll = findViewById<MaterialSwitch>(R.id.swMonitorAll)
+        val spBlackType = findViewById<Spinner>(R.id.spBlackType)
+        val etBlackValue = findViewById<EditText>(R.id.etBlackValue)
         tvSound = findViewById(R.id.tvSound)
         btnPreview = findViewById(R.id.btnPreview)
         rgVolume = findViewById(R.id.rgVolume)
@@ -115,6 +122,37 @@ class SettingsActivity : AppCompatActivity() {
         etUrl.setText(prefs.llmBaseUrl)
         etKey.setText(prefs.llmApiKey)
         etModel.setText(prefs.llmModel)
+        swMonitorAll.isChecked = prefs.monitorAll
+        spBlackType.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            listOf("群聊名称", "关键词", "App 包名"),
+        )
+        findViewById<Button>(R.id.btnAddBlack).setOnClickListener {
+            val value = etBlackValue.text.toString().trim()
+            if (value.isEmpty()) {
+                etBlackValue.error = "先填写要屏蔽的内容"
+                return@setOnClickListener
+            }
+            when (spBlackType.selectedItemPosition) {
+                0 -> prefs.blackConversations = prefs.blackConversations + value
+                1 -> prefs.blackKeywords = prefs.blackKeywords + value
+                else -> prefs.blackPackages = prefs.blackPackages + value
+            }
+            etBlackValue.setText("")
+            val archived = Reminders.archiveBlacklisted(this)
+            renderBlacklist()
+            Toast.makeText(
+                this,
+                if (archived > 0) "已添加，顺手归档了 $archived 条命中的提醒" else "已添加",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+        etBlackValue.setOnEditorActionListener { _, _, _ ->
+            findViewById<Button>(R.id.btnAddBlack).performClick()
+            true
+        }
+        renderBlacklist()
 
         findViewById<Button>(R.id.btnPickRingtone).setOnClickListener {
             stopPreview()
@@ -210,8 +248,10 @@ class SettingsActivity : AppCompatActivity() {
             prefs.llmBaseUrl = etUrl.text.toString()
             prefs.llmApiKey = etKey.text.toString()
             prefs.llmModel = etModel.text.toString()
+            prefs.monitorAll = swMonitorAll.isChecked
             prefs.monitoredPackages = selected.toSet()
             // 免打扰改了会影响已有提醒的响铃时刻
+            Reminders.archiveBlacklisted(this)
             Reminders.rescheduleAll(this)
             Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show()
             finish()
@@ -252,6 +292,47 @@ class SettingsActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    private fun renderBlacklist() {
+        val container = findViewById<LinearLayout>(R.id.blackContainer)
+        val status = findViewById<TextView>(R.id.blackStatus)
+        container.removeAllViews()
+        val rows = mutableListOf<Triple<String, String, String>>()
+        prefs.blackConversations.sorted().forEach { rows += Triple("群聊", "conversation", it) }
+        prefs.blackKeywords.sorted().forEach { rows += Triple("关键词", "keyword", it) }
+        prefs.blackPackages.sorted().forEach { rows += Triple("应用", "pkg", it) }
+        status.text =
+            if (rows.isEmpty()) "还没有黑名单规则"
+            else "共 ${rows.size} 条规则；命中后直接跳过，不创建提醒"
+        for ((label, kind, value) in rows) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            val tv = TextView(this).apply {
+                text = "$label：$value"
+                textSize = 13f
+                setPadding(0, 8, 0, 8)
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val remove = Button(this).apply {
+                text = "移除"
+                textSize = 12f
+                minWidth = 0
+                setOnClickListener {
+                    when (kind) {
+                        "conversation" -> prefs.blackConversations = prefs.blackConversations - value
+                        "keyword" -> prefs.blackKeywords = prefs.blackKeywords - value
+                        else -> prefs.blackPackages = prefs.blackPackages - value
+                    }
+                    renderBlacklist()
+                }
+            }
+            row.addView(tv)
+            row.addView(remove)
+            container.addView(row)
+        }
+    }
+
     /** 列出所有有桌面图标的 App，已勾选的排在前面。 */
     private fun loadApps() {
         val container = findViewById<LinearLayout>(R.id.appsContainer)
@@ -273,7 +354,11 @@ class SettingsActivity : AppCompatActivity() {
             }
             val sorted = apps.sortedWith(compareBy({ it.first !in selected }, { it.second }))
             runOnUiThread {
-                status.text = "勾选要监听的 App（共 ${sorted.size} 个）"
+                status.text = if (prefs.monitorAll) {
+                    "正在监听所有 App（下面只是参考列表）"
+                } else {
+                    "勾选要监听的 App（共 ${sorted.size} 个）"
+                }
                 for ((pkg, label) in sorted) {
                     container.addView(CheckBox(this).apply {
                         text = "$label\n$pkg"

@@ -24,6 +24,7 @@ object AlarmScheduler {
         QuietHours.plan(r.time, r.offsets, Prefs(ctx).quietHours, LocalDateTime.now())
 
     fun schedule(ctx: Context, r: Reminder) {
+        if (r.archived) return
         plan(ctx, r).take(Prefs.MAX_OFFSETS).forEachIndexed { slot, at ->
             set(ctx, millis(at), pending(ctx, r.id, slot, create = true)!!)
         }

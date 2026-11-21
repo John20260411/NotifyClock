@@ -28,6 +28,15 @@
             android:text="测试通知监听是否正常" />
 
         <TextView
+            android:id="@+id/tvDiag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:lineSpacingExtra="2dp"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+        <TextView
             style="@style/SectionTitle"
             android:text="试一试" />
 
@@ -74,6 +83,28 @@
             style="@style/SectionTitle"
             android:text="提醒" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnActive"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="待处理" />
+
+            <Button
+                android:id="@+id/btnArchived"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="归档" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/emptyText"
             android:layout_width="match_parent"
@@ -86,6 +117,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="未记录的通知" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.7"
+            android:text="这些通知被过滤了或没识别出时间。可以在这里补录、监听来源 App、或屏蔽该会话。"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/emptyDropped"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="6dp"
+            android:text="没有未记录的通知。" />
+
+        <LinearLayout
+            android:id="@+id/droppedContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/btnClearDropped"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="清空未记录列表" />
 
         <TextView
             style="@style/SectionTitle"

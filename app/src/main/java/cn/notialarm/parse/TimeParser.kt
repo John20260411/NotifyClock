@@ -10,7 +10,13 @@ import java.time.LocalDateTime
  */
 object TimeParser {
 
-    data class Result(val time: LocalDateTime, val title: String, val matched: String)
+    data class Result(
+        val time: LocalDateTime,
+        val title: String,
+        val matched: String,
+        /** true = 原文只有日期没有具体时刻，时间按默认值估算。 */
+        val assumed: Boolean = false,
+    )
 
     private enum class Period(val defaultHour: Int) {
         DAWN(6), MORNING(9), NOON(12), AFTERNOON(14), EVENING(19)
@@ -29,14 +35,18 @@ object TimeParser {
 
     private val HINT = Regex(
         "\\d\\s*(点|时|号|日|月|分钟|小时|天后|:\\d)|今天|明天|后天|今晚|明晚|明早|下周|" +
-            "周[1-7日天末]|星期|礼拜|截止|ddl|DDL|deadline|月底"
+            "周[1-7日天末]|星期|礼拜|截止|ddl|DDL|deadline|下个?月|月底"
     )
+
+    private val DEADLINE = Regex("截止|ddl|DDL|deadline|Deadline")
 
     private val REL_HALF = Regex("(\\d+)个?半(?:小时|钟头)(?:后|之后|以后)")
     private val REL = Regex("(\\d+|半)个?(分钟|小时|钟头)(?:后|之后|以后)")
     private val DAYS_LATER = Regex("(\\d+)天(?:后|之后|以后)")
     private val FULL_DATE = Regex("(\\d{4})[年./-](\\d{1,2})[月./-](\\d{1,2})[日号]?")
     private val MONTH_DAY = Regex("(\\d{1,2})月(\\d{1,2})[日号]?")
+    private val REL_MONTH = Regex("(下个?月|本月|这个月|当月)(\\d{1,2})[日号]")
+    private val MONTH_END = Regex("(?:(下个?月|本月|这个月|当月)|月)底")
     private val SLASH_DATE = Regex("(?<![\\d./:-])(\\d{1,2})[/-](\\d{1,2})(?![\\d/:-])")
     private val DAY_ONLY = Regex("(?<![\\d月/.-])(\\d{1,2})[日号](?![楼线门床位机房院馆厅口窗车道街路栋舍层室\\d])")
     private val REL_DAY = Regex("大后天|今天|今日|今晚|今早|今夜|明天|明日|明早|明晚|后天")
@@ -78,6 +88,7 @@ object TimeParser {
         val ranges = mutableListOf<IntRange>()
         val baseDate = date?.date ?: today
         var dt: LocalDateTime
+        var assumed = false
         if (time != null) {
             val p = period?.period ?: date?.period
             dt = baseDate.atStartOfDay()
@@ -87,13 +98,18 @@ object TimeParser {
             period?.let { ranges += it.range }
         } else {
             val after = periodAfter(text, date!!.range.last + 1)
-            dt = baseDate.atTime((after?.period ?: date.period ?: Period.MORNING).defaultHour, 0)
+            val p = after?.period ?: date.period ?: Period.MORNING
+            // “周五前交”“月底截止”：只有日期时，截止类按当天 23:59，其余按上午 9:00。
+            val deadline = DEADLINE.containsMatchIn(text) ||
+                text.substring(date.range.last + 1).trimStart().startsWith("前")
+            dt = if (deadline) baseDate.atTime(23, 59) else baseDate.atTime(p.defaultHour, 0)
+            assumed = !deadline
             after?.let { ranges += it.range }
         }
         date?.let { ranges += it.range }
         if (date == null && dt.isBefore(now)) dt = dt.plusDays(1)
         if (dt.isBefore(now.minusMinutes(1))) return null
-        return build(text, ranges, dt)
+        return build(text, ranges, dt, assumed)
     }
 
     private fun findDates(text: String, today: LocalDate): List<DateHit> {
@@ -113,6 +129,16 @@ object TimeParser {
             add(m.range, safeDate(y.toInt(), mo.toInt(), d.toInt()))
         }
         MONTH_DAY.findAll(text).forEach { m -> add(m.range, yearly(m.groupValues[1].toInt(), m.groupValues[2].toInt())) }
+        REL_MONTH.findAll(text).forEach { m ->
+            val base = if (m.groupValues[1].startsWith("下")) today.plusMonths(1) else today
+            var d = safeDate(base.year, base.monthValue, m.groupValues[2].toInt())
+            if (d != null && d.isBefore(today)) d = d.plusMonths(1)
+            add(m.range, d)
+        }
+        MONTH_END.findAll(text).forEach { m ->
+            val base = if (m.groupValues[1].startsWith("下")) today.plusMonths(1) else today
+            add(m.range, base.withDayOfMonth(base.lengthOfMonth()))
+        }
         SLASH_DATE.findAll(text).forEach { m -> add(m.range, yearly(m.groupValues[1].toInt(), m.groupValues[2].toInt())) }
         DAY_ONLY.findAll(text).forEach { m ->
             val d = m.groupValues[1].toInt()
@@ -212,7 +238,7 @@ object TimeParser {
         null -> if (!colon && h in 1..6) h + 12 else h
     }
 
-    private fun build(text: String, ranges: List<IntRange>, dt: LocalDateTime): Result {
+    private fun build(text: String, ranges: List<IntRange>, dt: LocalDateTime, assumed: Boolean = false): Result {
         val sb = StringBuilder(text)
         ranges.sortedByDescending { it.first }.forEach { sb.delete(it.first, it.last + 1) }
         val title = sb.toString()
@@ -220,7 +246,7 @@ object TimeParser {
             .replace(Regex("^[\\s,，。.:：!！、;；~～]+|[\\s,，。.:：!！、;；~～]+$"), "")
             .take(30)
         val matched = ranges.sortedBy { it.first }.joinToString(" ") { text.substring(it) }
-        return Result(dt, title, matched)
+        return Result(dt, title, matched, assumed)
     }
 
     private fun safeDate(y: Int, m: Int, d: Int): LocalDate? =
