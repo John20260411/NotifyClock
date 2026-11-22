@@ -36,4 +36,19 @@ class AlarmWindowTest {
     fun missingAtIsStale() {
         assertFalse(AlarmWindow.isFresh(now, 0L))
     }
+
+    @Test
+    fun futureAlarmCanBeScheduled() {
+        assertTrue(AlarmWindow.canSchedule(now, now + 24L * 3600 * 1000))
+    }
+
+    @Test
+    fun pastAlarmBeyondLateWindowCannotBeScheduled() {
+        assertFalse(AlarmWindow.canSchedule(now, now - AlarmWindow.MAX_LATE_MS - 1))
+    }
+
+    @Test
+    fun missingAtCannotBeScheduled() {
+        assertFalse(AlarmWindow.canSchedule(now, 0L))
+    }
 }

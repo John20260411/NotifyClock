@@ -65,6 +65,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Notifier.ensureChannels(this)
+        // 0.3.3 修复排程窗口后，需要把既有提醒重新排一遍，否则旧版本保存的提醒仍然没有闹钟。
+        runCatching { Reminders.rescheduleAll(this) }
         window.navigationBarColor = getColor(R.color.app_background)
         window.statusBarColor = getColor(R.color.app_background)
         WindowCompat.getInsetsController(window, window.decorView).apply {

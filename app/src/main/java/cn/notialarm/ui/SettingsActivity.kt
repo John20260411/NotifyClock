@@ -2,8 +2,12 @@ package cn.notialarm.ui
 
 import android.app.Activity
 import android.app.TimePickerDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -22,6 +26,7 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -33,10 +38,12 @@ import cn.notialarm.NotifyListener
 import cn.notialarm.R
 import cn.notialarm.Reminders
 import cn.notialarm.alarm.AlarmService
+import cn.notialarm.data.AttemptLog
 import cn.notialarm.data.Diag
 import cn.notialarm.data.DroppedStore
 import cn.notialarm.data.Prefs
 import cn.notialarm.parse.LlmParser
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import java.time.LocalTime
 
@@ -93,6 +100,7 @@ class SettingsActivity : AppCompatActivity() {
         permContainer = findViewById(R.id.permContainer)
         tvDiag = findViewById(R.id.tvDiag)
         findViewById<Button>(R.id.btnTestListener).setOnClickListener { testListener() }
+        findViewById<Button>(R.id.btnAttempts).setOnClickListener { showAttempts() }
         Permissions.render(this, permContainer)
         renderDiag()
 
@@ -297,6 +305,31 @@ class SettingsActivity : AppCompatActivity() {
     private fun renderDiag() {
         tvDiag.text = Diag.summary(this, NotifyListener.connected)
     }
+
+    /** 只展示本地追踪元数据，不含聊天正文和密钥。 */
+    private fun showAttempts() {
+        val body = AttemptLog.summary(this, 60)
+        val tv = TextView(this).apply {
+            text = body
+            textSize = 11f
+            typeface = Typeface.MONOSPACE
+            setTextIsSelectable(true)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        val scroll = ScrollView(this).apply { addView(tv) }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("最近通知处理记录")
+            .setView(scroll)
+            .setPositiveButton("关闭", null)
+            .setNeutralButton("复制") { _, _ ->
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("NotiAlarm 诊断", body))
+                Toast.makeText(this@SettingsActivity, "已复制", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     /** 给自己发一条通知，2 秒内监听服务收到就说明链路通了。 */
     private fun testListener() {

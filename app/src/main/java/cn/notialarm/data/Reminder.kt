@@ -81,21 +81,30 @@ object ReminderStore {
     fun get(ctx: Context, id: Int): Reminder? = all(ctx).firstOrNull { it.id == id }
 
     @Synchronized
-    fun save(ctx: Context, r: Reminder) = write(ctx, all(ctx).filter { it.id != r.id } + r)
+    fun save(ctx: Context, r: Reminder): Boolean = write(ctx, all(ctx).filter { it.id != r.id } + r)
 
     @Synchronized
-    fun delete(ctx: Context, id: Int) = write(ctx, all(ctx).filter { it.id != id })
+    fun delete(ctx: Context, id: Int): Boolean = write(ctx, all(ctx).filter { it.id != id })
 
     @Synchronized
     fun newId(ctx: Context): Int {
-        val id = sp(ctx).getInt("next_id", 1)
+        val sp = sp(ctx)
+        val id = sp.getInt("next_id", 1)
         // 闹钟 requestCode = id * 10 + slot，必须留在 Int 范围内
-        sp(ctx).edit().putInt("next_id", if (id >= 200_000_000) 1 else id + 1).apply()
+        sp.edit().putInt("next_id", if (id >= 200_000_000) 1 else id + 1).commit()
         return id
     }
 
-    fun isDuplicate(ctx: Context, title: String, time: LocalDateTime): Boolean =
-        active(ctx).any { it.time == time && (it.title.contains(title) || title.contains(it.title)) }
+    fun isDuplicate(
+        ctx: Context,
+        title: String,
+        time: LocalDateTime,
+        conversation: String = "",
+    ): Boolean = active(ctx).any {
+        it.time == time &&
+            it.conversation.equals(conversation, ignoreCase = true) &&
+            (it.title.contains(title) || title.contains(it.title))
+    }
 
     /**
      * 把已经结束（事件时间 + 2 小时）或用户确认过的提醒归档。
@@ -161,11 +170,12 @@ object ReminderStore {
         if (kept.size != list.size) write(ctx, kept)
     }
 
-    private fun write(ctx: Context, list: List<Reminder>) {
+    private fun write(ctx: Context, list: List<Reminder>): Boolean {
         val pruned = prune(list)
         val arr = JSONArray()
         pruned.forEach { arr.put(it.toJson()) }
-        sp(ctx).edit().putString("list", arr.toString()).apply()
+        // 用 commit 而不是 apply：调用方需要知道是否真的写入，才能区分“未保存”和“已保存但排程失败”。
+        return sp(ctx).edit().putString("list", arr.toString()).commit()
     }
 
     /** 归档优先淘汰最旧的；待处理永远保留（除非超过总上限）。 */

@@ -18,4 +18,14 @@ object AlarmWindow {
         if (at <= 0L) return false
         return now - at <= MAX_LATE_MS && at - now <= MAX_EARLY_MS
     }
+
+    /**
+     * 排程阶段只拒绝“已经过去太久”的计划；未来哪怕还有几十天也必须能排。
+     * 不能复用 [isFresh]：它检查的是“触发时是否仍在窗口内”，未来时间本来就会
+     * 超过 MAX_EARLY_MS，复用会导致所有正常提醒都排不上闹钟。
+     */
+    fun canSchedule(now: Long, at: Long): Boolean {
+        if (at <= 0L) return false
+        return now - at <= MAX_LATE_MS
+    }
 }

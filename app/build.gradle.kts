@@ -3,6 +3,11 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// C 盘空间紧张：设置 NOTIALARM_BUILD_DIR 后把编译产物放到 D 盘。
+System.getenv("NOTIALARM_BUILD_DIR")?.takeIf { it.isNotBlank() }?.let {
+    layout.buildDirectory.set(file(it))
+}
+
 android {
     namespace = "cn.notialarm"
     compileSdk = 35
@@ -11,8 +16,8 @@ android {
         applicationId = "cn.notialarm"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "0.3.2"
+        versionCode = 9
+        versionName = "0.3.3"
     }
 
     buildTypes {

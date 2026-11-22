@@ -26,13 +26,17 @@ object AlarmScheduler {
     fun plan(ctx: Context, r: Reminder): List<LocalDateTime> =
         QuietHours.plan(r.time, r.offsets, Prefs(ctx).quietHours, LocalDateTime.now())
 
-    fun schedule(ctx: Context, r: Reminder) {
-        if (r.archived) return
+    fun schedule(ctx: Context, r: Reminder): Int {
+        if (r.archived) return 0
         // 先清掉同一 id 的旧闹钟，避免改时间/恢复后旧的 PendingIntent 仍留在系统里。
         cancel(ctx, r.id)
+        var scheduled = 0
         plan(ctx, r).take(Prefs.MAX_OFFSETS).forEachIndexed { slot, at ->
-            set(ctx, millis(at), pending(ctx, r.id, slot, create = true, at = millis(at))!!)
+            if (set(ctx, millis(at), pending(ctx, r.id, slot, create = true, at = millis(at))!!)) {
+                scheduled++
+            }
         }
+        return scheduled
     }
 
     /** 延后是用户主动选的，不受免打扰限制。 */
@@ -69,9 +73,9 @@ object AlarmScheduler {
         return PendingIntent.getBroadcast(ctx, id * 10 + slot, intent, flags)
     }
 
-    private fun set(ctx: Context, at: Long, pi: PendingIntent) {
-        // 已经过去太久的计划（常见于关机/Doze 后系统补发）不要再排，否则会立刻响。
-        if (!AlarmWindow.isFresh(System.currentTimeMillis(), at)) return
+    private fun set(ctx: Context, at: Long, pi: PendingIntent): Boolean {
+        // 只拒绝已经过去太久的计划（常见于关机/Doze 后系统补发），未来时间必须允许排。
+        if (!AlarmWindow.canSchedule(System.currentTimeMillis(), at)) return false
         val am = ctx.getSystemService(AlarmManager::class.java)
         if (canExact(ctx)) {
             // setAlarmClock 在省电/Doze 下也会准时触发，状态栏会显示闹钟图标
@@ -82,5 +86,6 @@ object AlarmScheduler {
         } else {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
         }
+        return true
     }
 }

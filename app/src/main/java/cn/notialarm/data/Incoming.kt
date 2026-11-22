@@ -16,6 +16,8 @@ data class Incoming(
     val recordDrop: Boolean = true,
     /** 用户在“未记录”里点“重试识别”：跳过 90 秒/7 天去重，确保这次操作真的重新解析。 */
     val force: Boolean = false,
+    /** 贯穿 NotifyListener -> Processor -> Reminders 的本地追踪 id；不写用户正文。 */
+    val attemptId: String = "",
 ) {
     /** 列表里显示的来源，例如“微信 · 2026级硕士群”。 */
     val source: String

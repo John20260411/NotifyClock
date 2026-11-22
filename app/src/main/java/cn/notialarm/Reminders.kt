@@ -19,6 +19,15 @@ object Reminders {
     /** 主界面在前台时设置，用来刷新列表。 */
     var onChange: (() -> Unit)? = null
 
+    enum class CreateStatus { CREATED, NO_FUTURE_ALARM, ACTIVE_DUPLICATE, PERSIST_FAILED, SCHEDULE_FAILED }
+
+    data class CreateOutcome(
+        val reminder: Reminder?,
+        val status: CreateStatus,
+        val scheduled: Int = 0,
+        val error: String? = null,
+    )
+
     /** 从通知创建：保留包名、群聊、通知 key，供黑名单和“打开原通知”使用。 */
     fun create(
         ctx: Context,
@@ -27,8 +36,23 @@ object Reminders {
         time: LocalDateTime,
         timeAssumed: Boolean,
         offsets: List<Int> = Prefs(ctx).defaultOffsets,
-    ): Reminder? {
-        if (ReminderStore.isDuplicate(ctx, title, time)) return null
+    ): Reminder? = createDetailed(ctx, incoming, title, time, timeAssumed, offsets).reminder
+
+    /**
+     * 与 create 相同，但把“未保存 / 已保存但排程失败 / 已有重复”分开返回。
+     * 通知链路必须能区分这些状态，不能把排程异常误报成“未创建”。
+     */
+    fun createDetailed(
+        ctx: Context,
+        incoming: Incoming,
+        title: String,
+        time: LocalDateTime,
+        timeAssumed: Boolean,
+        offsets: List<Int> = Prefs(ctx).defaultOffsets,
+    ): CreateOutcome {
+        if (ReminderStore.isDuplicate(ctx, title, time, incoming.conversation)) {
+            return CreateOutcome(null, CreateStatus.ACTIVE_DUPLICATE)
+        }
         val r = Reminder(
             id = ReminderStore.newId(ctx),
             title = title,
@@ -41,12 +65,28 @@ object Reminders {
             notifKey = incoming.notifKey,
             timeAssumed = timeAssumed,
         )
-        ReminderStore.save(ctx, r)
-        AlarmScheduler.schedule(ctx, r)
-        Prefs(ctx).lastCreatedId = r.id
-        Notifier.recordedSummary(ctx)
+        if (!ReminderStore.save(ctx, r)) {
+            return CreateOutcome(null, CreateStatus.PERSIST_FAILED, error = "ReminderStore.save 返回 false")
+        }
+
+        var scheduled = 0
+        var error: String? = null
+        try {
+            scheduled = AlarmScheduler.schedule(ctx, r)
+        } catch (t: Throwable) {
+            error = "${t.javaClass.simpleName}: ${t.message.orEmpty().take(80)}"
+        }
+
+        // 已经保存就必须让界面看到，即使排程/汇总通知失败；失败状态由调用方记录。
+        runCatching { Prefs(ctx).lastCreatedId = r.id }
+        runCatching { Notifier.recordedSummary(ctx) }
         changed()
-        return r
+
+        return when {
+            error != null -> CreateOutcome(r, CreateStatus.SCHEDULE_FAILED, scheduled, error)
+            scheduled == 0 -> CreateOutcome(r, CreateStatus.NO_FUTURE_ALARM, 0)
+            else -> CreateOutcome(r, CreateStatus.CREATED, scheduled)
+        }
     }
 
     /** 主界面手动新建。 */
@@ -56,10 +96,10 @@ object Reminders {
     ): Reminder? {
         if (ReminderStore.isDuplicate(ctx, title, time)) return null
         val r = Reminder(ReminderStore.newId(ctx), title, time, offsets, source, text)
-        ReminderStore.save(ctx, r)
-        AlarmScheduler.schedule(ctx, r)
-        Prefs(ctx).lastCreatedId = r.id
-        Notifier.recordedSummary(ctx)
+        if (!ReminderStore.save(ctx, r)) return null
+        runCatching { AlarmScheduler.schedule(ctx, r) }
+        runCatching { Prefs(ctx).lastCreatedId = r.id }
+        runCatching { Notifier.recordedSummary(ctx) }
         changed()
         return r
     }

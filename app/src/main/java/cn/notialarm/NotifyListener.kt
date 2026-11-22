@@ -11,6 +11,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import cn.notialarm.data.ActivityLog
+import cn.notialarm.data.AttemptLog
 import cn.notialarm.data.Diag
 import cn.notialarm.data.Dropped
 import cn.notialarm.data.DroppedStore
@@ -83,6 +84,25 @@ class NotifyListener : NotificationListenerService() {
             }
             return
         }
+        val attemptId = AttemptLog.begin(
+            this,
+            if (replay) "REPLAY" else "LIVE",
+            sbn.packageName,
+            sbn.key,
+            sbn.postTime,
+            sbn.notification.flags,
+        )
+        try {
+            handleInner(sbn, replay, attemptId)
+        } catch (t: Throwable) {
+            AttemptLog.stage(
+                this, attemptId, "FAILED", reason = "EXCEPTION",
+                extra = "${t.javaClass.simpleName}: ${t.message.orEmpty().take(80)}",
+            )
+        }
+    }
+
+    private fun handleInner(sbn: StatusBarNotification, replay: Boolean, attemptId: String) {
         val n = sbn.notification
         val prefs = Prefs(this)
         val app = appLabel(sbn.packageName)
@@ -91,7 +111,10 @@ class NotifyListener : NotificationListenerService() {
         // 只处理用户明确勾选监听的 App。未勾选的 App 直接丢弃，连“未记录”都不写，
         // 否则系统通知、键盘提示等无关内容会把“未记录的通知”列表塞满。
         val explicitlyMonitored = sbn.packageName in prefs.monitoredPackages
-        if (!prefs.monitorAll && !explicitlyMonitored) return
+        if (!prefs.monitorAll && !explicitlyMonitored) {
+            AttemptLog.stage(this, attemptId, "FILTERED", reason = "APP_NOT_SELECTED")
+            return
+        }
 
         val extras = n.extras
         val rawTitle = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
@@ -103,15 +126,20 @@ class NotifyListener : NotificationListenerService() {
             .ifBlank { messaging?.conversationTitle?.toString()?.trim().orEmpty() }
             .ifBlank { extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty() }
             .ifBlank { rawTitle }
-        val text = extractText(n, messaging)
+        val ex = extractText(n, messaging)
+        val text = ex.text
         val groupSummary = n.flags and Notification.FLAG_GROUP_SUMMARY != 0
         val ongoing = n.flags and Notification.FLAG_ONGOING_EVENT != 0
         val hasTime = TimeParser.hasTimeHint(text)
+        AttemptLog.stage(
+            this, attemptId, "TEXT", extra = "body=${ex.source}",
+            text = text, hasTime = hasTime,
+        )
 
         if (text.isBlank()) {
             drop(
                 sbn, app, conversation, rawTitle, "", "通知没有正文（可能关闭了“通知显示消息详情”）",
-                recordDrop = explicitlyMonitored,
+                recordDrop = explicitlyMonitored, attemptId = attemptId, code = "EMPTY_TEXT",
             )
             return
         }
@@ -121,7 +149,7 @@ class NotifyListener : NotificationListenerService() {
         if (groupSummary && !hasTime) {
             drop(
                 sbn, app, conversation, rawTitle, text, "群聊汇总里没有可识别的时间",
-                recordDrop = explicitlyMonitored,
+                recordDrop = explicitlyMonitored, attemptId = attemptId, code = "SUMMARY_NO_TIME",
             )
             return
         }
@@ -130,6 +158,7 @@ class NotifyListener : NotificationListenerService() {
         if (hit != null) {
             // 用户主动屏蔽的内容不进入“未记录”列表，只计数，避免越积越多。
             Diag.onDropped(this)
+            AttemptLog.stage(this, attemptId, "FILTERED", reason = "BLACKLIST_MATCH", extra = "kind=${hit.kind}")
             return
         }
 
@@ -138,13 +167,15 @@ class NotifyListener : NotificationListenerService() {
         if (ongoing && !hasTime) {
             drop(
                 sbn, app, conversation, rawTitle, text, "常驻通知里没有可识别的时间",
-                recordDrop = explicitlyMonitored,
+                recordDrop = explicitlyMonitored, attemptId = attemptId, code = "ONGOING_NO_TIME",
             )
             return
         }
 
-        SourceLauncher.remember(this, sbn.key, n.contentIntent)
+        runCatching { SourceLauncher.remember(this, sbn.key, n.contentIntent) }
+            .onFailure { AttemptLog.stage(this, attemptId, "WARN", reason = "REMEMBER_FAILED", extra = it.message.orEmpty().take(60)) }
         Diag.onAllowed(this)
+        AttemptLog.stage(this, attemptId, "ALLOWED", text = text, hasTime = hasTime)
         Processor.submit(
             applicationContext,
             Incoming(
@@ -157,6 +188,7 @@ class NotifyListener : NotificationListenerService() {
                 contentIntent = n.contentIntent,
                 postedAt = sbn.postTime,
                 recordDrop = explicitlyMonitored,
+                attemptId = attemptId,
             ),
         )
     }
@@ -169,8 +201,11 @@ class NotifyListener : NotificationListenerService() {
         text: String,
         reason: String,
         recordDrop: Boolean,
+        attemptId: String,
+        code: String,
     ) {
         Diag.onDropped(this)
+        AttemptLog.stage(this, attemptId, "FILTERED", reason = code, text = text)
         if (!recordDrop) return
         DroppedStore.add(
             this,
@@ -190,34 +225,42 @@ class NotifyListener : NotificationListenerService() {
      * 聊天类通知优先取 MessagingStyle 的最后几条消息，再合并大文本/正文/子文本/多行文本。
      * 只取最后一条会漏掉“上一条是图片、这一条才是文字”的情况，所以保留最近 3 条。
      */
-    private fun extractText(n: Notification, messaging: NotificationCompat.MessagingStyle?): String {
-        val parts = LinkedHashSet<String>()
-        fun add(s: CharSequence?) {
+    private data class Extracted(val text: String, val source: String)
+
+    private fun extractText(n: Notification, messaging: NotificationCompat.MessagingStyle?): Extracted {
+        val parts = LinkedHashMap<String, String>()
+        fun add(label: String, s: CharSequence?) {
             val v = s?.toString()?.trim().orEmpty()
-            if (v.isNotBlank() && v != "null") parts.add(v)
+            if (v.isNotBlank() && v != "null") parts.putIfAbsent(v, label)
         }
-        messaging?.messages?.takeLast(3)?.forEach { add(it.text) }
+        messaging?.messages?.takeLast(3)?.forEach { add("MESSAGING", it.text) }
         // 部分微信/QQ 版本用自定义 Parcelable 存消息，NotificationCompat 解析不到；
         // 直接读系统 EXTRA_MESSAGES，避免“通知收到了但正文为空”。
         runCatching {
             n.extras.getParcelableArray(Notification.EXTRA_MESSAGES)
                 ?.takeLast(3)
                 ?.forEach { raw ->
-                    (raw as? Bundle)?.getCharSequence("text")?.let { add(it) }
+                    (raw as? Bundle)?.getCharSequence("text")?.let { add("EXTRA_MESSAGES", it) }
                 }
         }
 
         val e = n.extras
-        add(e.getCharSequence(Notification.EXTRA_BIG_TEXT))
-        add(e.getCharSequence(Notification.EXTRA_TEXT))
-        add(e.getCharSequence(Notification.EXTRA_SUB_TEXT))
-        e.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach { add(it) }
-        add(n.tickerText)
+        add("BIG_TEXT", e.getCharSequence(Notification.EXTRA_BIG_TEXT))
+        add("TEXT", e.getCharSequence(Notification.EXTRA_TEXT))
+        add("SUB_TEXT", e.getCharSequence(Notification.EXTRA_SUB_TEXT))
+        e.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.forEach { add("TEXT_LINES", it) }
+        add("TICKER", n.tickerText)
 
         // 大文本通常已经包含正文，去掉被其他片段完整包含的短句。
-        val all = parts.toList()
-        return all.filter { s -> all.none { other -> other != s && other.contains(s) } }
-            .joinToString("\n")
+        val all = parts.keys.toList()
+        val kept = all.filter { s -> all.none { other -> other != s && other.contains(s) } }
+        val labels = kept.mapNotNull { parts[it] }.distinct()
+        val body = when {
+            labels.isEmpty() -> ""
+            labels.size == 1 -> labels.first()
+            else -> "MIXED(" + labels.joinToString("+") + ")"
+        }
+        return Extracted(kept.joinToString("\n"), body)
     }
 
     private fun appLabel(pkg: String): String = runCatching {
