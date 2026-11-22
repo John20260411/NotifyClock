@@ -107,6 +107,8 @@ class AlarmActivity : AppCompatActivity() {
     private fun bind(intent: Intent) {
         id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
         val r = ReminderStore.get(this, id) ?: run { finish(); return }
+        // 已归档的提醒（确认不再提醒/已过期）不应该再出现响铃页。
+        if (r.archived) { finish(); return }
         findViewById<TextView>(R.id.tvTitle).text = r.title
         findViewById<TextView>(R.id.tvWhen).text = buildString {
             append(Notifier.whenText(r))

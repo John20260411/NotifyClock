@@ -17,6 +17,9 @@ import java.time.ZoneId
  */
 object AlarmScheduler {
     const val EXTRA_ID = "id"
+    const val EXTRA_AT = "at"
+    const val EXTRA_SLOT = "slot"
+
     private const val SNOOZE_SLOT = Prefs.MAX_OFFSETS
 
     /** 实际响铃时刻（已按免打扰时段调整）。 */
@@ -25,15 +28,17 @@ object AlarmScheduler {
 
     fun schedule(ctx: Context, r: Reminder) {
         if (r.archived) return
+        // 先清掉同一 id 的旧闹钟，避免改时间/恢复后旧的 PendingIntent 仍留在系统里。
+        cancel(ctx, r.id)
         plan(ctx, r).take(Prefs.MAX_OFFSETS).forEachIndexed { slot, at ->
-            set(ctx, millis(at), pending(ctx, r.id, slot, create = true)!!)
+            set(ctx, millis(at), pending(ctx, r.id, slot, create = true, at = millis(at))!!)
         }
     }
 
     /** 延后是用户主动选的，不受免打扰限制。 */
     fun snooze(ctx: Context, id: Int, minutes: Int) {
         val at = System.currentTimeMillis() + minutes * 60_000L
-        set(ctx, at, pending(ctx, id, SNOOZE_SLOT, create = true)!!)
+        set(ctx, at, pending(ctx, id, SNOOZE_SLOT, create = true, at = at)!!)
     }
 
     fun cancel(ctx: Context, id: Int) {
@@ -43,19 +48,30 @@ object AlarmScheduler {
         }
     }
 
+    fun cancelSlot(ctx: Context, id: Int, slot: Int) {
+        if (slot !in 0..SNOOZE_SLOT) return
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        pending(ctx, id, slot, create = false)?.let { am.cancel(it); it.cancel() }
+    }
+
     fun canExact(ctx: Context): Boolean =
         Build.VERSION.SDK_INT < 31 || ctx.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
 
     private fun millis(t: LocalDateTime) = t.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-    private fun pending(ctx: Context, id: Int, slot: Int, create: Boolean): PendingIntent? {
-        val intent = Intent(ctx, AlarmReceiver::class.java).putExtra(EXTRA_ID, id)
+    private fun pending(ctx: Context, id: Int, slot: Int, create: Boolean, at: Long = -1L): PendingIntent? {
+        val intent = Intent(ctx, AlarmReceiver::class.java)
+            .putExtra(EXTRA_ID, id)
+            .putExtra(EXTRA_SLOT, slot)
+            .putExtra(EXTRA_AT, at)
         val flags = PendingIntent.FLAG_IMMUTABLE or
             if (create) PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_NO_CREATE
         return PendingIntent.getBroadcast(ctx, id * 10 + slot, intent, flags)
     }
 
     private fun set(ctx: Context, at: Long, pi: PendingIntent) {
+        // 已经过去太久的计划（常见于关机/Doze 后系统补发）不要再排，否则会立刻响。
+        if (!AlarmWindow.isFresh(System.currentTimeMillis(), at)) return
         val am = ctx.getSystemService(AlarmManager::class.java)
         if (canExact(ctx)) {
             // setAlarmClock 在省电/Doze 下也会准时触发，状态栏会显示闹钟图标

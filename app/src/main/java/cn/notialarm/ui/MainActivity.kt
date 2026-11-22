@@ -216,6 +216,24 @@ class MainActivity : AppCompatActivity() {
             "还没有待处理提醒。收到含时间的通知后会自动出现在这里。"
         }
         adapter.submit(list)
+        resizeReminderList()
+    }
+
+    /**
+     * RecyclerView 在 ScrollView 里使用 wrap_content 时只会量到首屏几条，
+     * 后面的提醒虽然存在于 adapter 里却不会显示。按卡片真实高度撑开列表。
+     */
+    private fun resizeReminderList() {
+        if (isFinishing || isDestroyed) return
+        val width = reminderList.width - reminderList.paddingLeft - reminderList.paddingRight
+        if (width <= 0) {
+            reminderList.post { resizeReminderList() }
+            return
+        }
+        val height = if (adapter.itemCount == 0) 0 else adapter.contentHeight(reminderList, width)
+        if (reminderList.layoutParams.height != height) {
+            reminderList.layoutParams = reminderList.layoutParams.apply { this.height = height }
+        }
     }
 
     /**
@@ -229,16 +247,19 @@ class MainActivity : AppCompatActivity() {
         }
         renderReminders()
         reminderList.post {
-            val index = adapter.indexOf(r.id)
-            if (index < 0) return@post
-            reminderList.scrollToPosition(index)
-            val vh = reminderList.findViewHolderForAdapterPosition(index)
-            val target = if (vh != null) {
-                reminderList.top + vh.itemView.top - dp(16)
-            } else {
-                reminderList.top
+            resizeReminderList()
+            reminderList.post {
+                val index = adapter.indexOf(r.id)
+                if (index < 0) return@post
+                reminderList.scrollToPosition(index)
+                val vh = reminderList.findViewHolderForAdapterPosition(index)
+                val target = if (vh != null) {
+                    reminderList.top + vh.itemView.top - dp(16)
+                } else {
+                    reminderList.top
+                }
+                mainScroll.smoothScrollTo(0, target.coerceAtLeast(0))
             }
-            mainScroll.smoothScrollTo(0, target.coerceAtLeast(0))
         }
     }
 

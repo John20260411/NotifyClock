@@ -21,7 +21,7 @@ import java.time.LocalDateTime
 object Notifier {
     const val CH_ALARM = "alarm"
     const val CH_ALARM_QUIET = "alarm_quiet"
-    const val CH_CREATED = "created"
+    const val CH_CREATED = "created_v2"
     const val CH_MISSED = "missed"
     const val ID_ALARM = 1
     const val ID_LISTENER_TEST = 2
@@ -50,8 +50,11 @@ object Notifier {
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_CREATED, "提醒汇总", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            NotificationChannel(CH_CREATED, "提醒汇总", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "所有待处理提醒合成一条通知，新提醒不会再刷屏"
+                setSound(null, null)
+                enableVibration(false)
+                setShowBadge(false)
             }
         )
         nm.createNotificationChannel(
@@ -64,6 +67,7 @@ object Notifier {
      * 以前每识别一条就发一条通知，通知栏很快被占满。
      */
     fun recordedSummary(ctx: Context) {
+        ensureChannels(ctx)
         val nm = ctx.getSystemService(NotificationManager::class.java)
         val active = ReminderStore.active(ctx)
         if (active.isEmpty()) {
@@ -87,6 +91,8 @@ object Notifier {
             .setStyle(style)
             .setContentIntent(open)
             .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
 
         val lastId = Prefs(ctx).lastCreatedId

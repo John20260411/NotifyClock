@@ -53,6 +53,25 @@ class ReminderAdapter(
 
     fun indexOf(id: Int): Int = items.indexOfFirst { it.id == id }
 
+    /**
+     * RecyclerView 被放在 ScrollView 里，wrap_content 只会量到首屏能放下的几条，
+     * 数据再多也只显示前两三张卡片。这里按真实卡片高度算出总高度，交给外层 ScrollView 滚动。
+     */
+    fun contentHeight(parent: ViewGroup, width: Int): Int {
+        var total = 0
+        for (i in items.indices) {
+            val holder = onCreateViewHolder(parent, getItemViewType(i))
+            onBindViewHolder(holder, i)
+            val lp = holder.itemView.layoutParams as ViewGroup.MarginLayoutParams
+            holder.itemView.measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            total += holder.itemView.measuredHeight + lp.topMargin + lp.bottomMargin
+        }
+        return total
+    }
+
     override fun getItemCount(): Int = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {

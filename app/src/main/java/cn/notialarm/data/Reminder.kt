@@ -146,16 +146,18 @@ object ReminderStore {
         return n
     }
 
-    /** 清理过久的记录：待处理只留 7 天内的，归档只留 30 天内的。 */
+    /**
+     * 清理过久的归档记录（只清归档，绝不删除待处理）。
+     *
+     * 以前这里会按 event time 把 7 天前的待处理直接删掉；如果手机几天没开机，
+     * 开机 rescheduleAll 会先 purge 再归档，用户就会看到“提醒凭空消失”。
+     * 待处理的过期由 archiveExpired 负责转入归档，这里只负责归档保留 30 天。
+     */
     @Synchronized
     fun purgeOld(ctx: Context) {
-        val now = LocalDateTime.now()
-        val activeCutoff = now.minusDays(7)
         val archiveCutoff = System.currentTimeMillis() - 30L * 24 * 3600 * 1000
         val list = all(ctx)
-        val kept = list.filter {
-            if (it.archived) it.archivedAt >= archiveCutoff else it.time.isAfter(activeCutoff)
-        }
+        val kept = list.filter { !it.archived || it.archivedAt >= archiveCutoff }
         if (kept.size != list.size) write(ctx, kept)
     }
 

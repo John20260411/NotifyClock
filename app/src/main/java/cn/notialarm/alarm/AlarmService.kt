@@ -60,7 +60,24 @@ class AlarmService : Service() {
         }
 
         val r = ReminderStore.get(this, id)
-        // startForegroundService 之后必须尽快 startForeground，即使提醒已被删除
+        val slot = intent?.getIntExtra(AlarmScheduler.EXTRA_SLOT, -1) ?: -1
+        val at = intent?.getLongExtra(AlarmScheduler.EXTRA_AT, 0L) ?: 0L
+        val now = System.currentTimeMillis()
+        // 只接受“确实应该现在响”的请求：提醒已删除/已归档、没有计划时刻、
+        // 或系统补发了迟到很久的旧 PendingIntent 时，都不再打扰用户。
+        val stale = r == null || r.archived || !AlarmWindow.isFresh(now, at)
+        if (stale) {
+            // startForegroundService 之后必须尽快 startForeground；用一条静默通知占位后立刻撤掉。
+            val placeholder = Notifier.alarm(this, null, fullScreen = false)
+            if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(Notifier.ID_ALARM, placeholder, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            } else {
+                startForeground(Notifier.ID_ALARM, placeholder)
+            }
+            if (r == null || r.archived) AlarmScheduler.cancel(this, id) else AlarmScheduler.cancelSlot(this, id, slot)
+            stopAll(closeUi = false)
+            return START_NOT_STICKY
+        }
         // 先发高优先级通知（保证后台也能拉起界面），界面显示后再降级，避免横幅一直挡着
         val interactive = getSystemService(PowerManager::class.java).isInteractive
         val locked = getSystemService(KeyguardManager::class.java).isKeyguardLocked
@@ -69,10 +86,6 @@ class AlarmService : Service() {
             startForeground(Notifier.ID_ALARM, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
             startForeground(Notifier.ID_ALARM, notification)
-        }
-        if (r == null) {
-            stopAll(closeUi = false)
-            return START_NOT_STICKY
         }
 
         currentId = id

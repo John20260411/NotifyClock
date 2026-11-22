@@ -130,6 +130,9 @@ object Reminders {
     }
 
     fun rescheduleAll(ctx: Context) {
+        // 先归档、再清理：否则关机几天后开机，过期但未归档的 active 会被 purgeOld 直接删掉。
+        val newlyArchived = ReminderStore.archiveExpired(ctx)
+        newlyArchived.forEach { AlarmScheduler.cancel(ctx, it) }
         ReminderStore.purgeOld(ctx)
         ReminderStore.all(ctx).forEach {
             AlarmScheduler.cancel(ctx, it.id)
