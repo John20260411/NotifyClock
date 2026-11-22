@@ -1,149 +1,258 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/app_background"
+    android:orientation="vertical">
 
+    <!-- 固定头部：大标题 + 齿轮，滚动时不跟着走 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
 
-        <!-- 权限统一收进右上角齿轮里的设置页，主页只在不正常时提示一行 -->
-        <TextView
-            android:id="@+id/tvPermWarning"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:background="#22FF9800"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:letterSpacing="0.01"
+                android:text="通知闹钟"
+                android:textColor="@color/app_text"
+                android:textSize="27sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="把通知里的时间，变成准时响的闹钟"
+                android:textColor="@color/app_text_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="设置"
             android:padding="10dp"
-            android:textColor="#FF8A4B00"
-            android:textSize="13sp"
-            android:visibility="gone" />
-
-        <TextView
-            style="@style/SectionTitle"
-            android:text="试一试" />
-
-        <EditText
-            android:id="@+id/inputText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="粘贴一条消息，例如：明天下午3点在正心楼开组会"
-            android:inputType="textMultiLine"
-            android:minLines="2" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnParse"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="识别并创建" />
-
-            <Button
-                android:id="@+id/btnAdd"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="手动添加" />
-        </LinearLayout>
-
-        <TextView
-            style="@style/SectionTitle"
-            android:text="提醒" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnActive"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="待处理" />
-
-            <Button
-                android:id="@+id/btnArchived"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="归档" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvListHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:alpha="0.65"
-            android:paddingHorizontal="4dp"
-            android:paddingBottom="6dp"
-            android:text="点按查看全文 · 左滑归档 · 长按修改或删除"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/emptyText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingVertical="8dp"
-            android:text="还没有提醒。收到含时间的通知后会自动出现在这里。" />
-
-        <LinearLayout
-            android:id="@+id/reminderContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <TextView
-            style="@style/SectionTitle"
-            android:text="未记录的通知" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:alpha="0.7"
-            android:text="这些通知被过滤了或没识别出时间。可以在这里补录、监听来源 App、或屏蔽该会话。"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/emptyDropped"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingVertical="6dp"
-            android:text="没有未记录的通知。" />
-
-        <LinearLayout
-            android:id="@+id/droppedContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <Button
-            android:id="@+id/btnClearDropped"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="清空未记录列表" />
-
-        <TextView
-            style="@style/SectionTitle"
-            android:text="最近处理的通知" />
-
-        <TextView
-            android:id="@+id/logText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:lineSpacingExtra="4dp"
-            android:textIsSelectable="true"
-            android:textSize="12sp" />
+            android:src="@drawable/ic_settings"
+            app:tint="@color/brand_primary" />
     </LinearLayout>
-</ScrollView>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <TextView
+                android:id="@+id/tvPermWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@color/brand_container"
+                android:padding="12dp"
+                android:textColor="@color/brand_on_container"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="试一试" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/app_surface"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/app_outline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <EditText
+                        android:id="@+id/inputText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:gravity="top"
+                        android:hint="粘贴一条消息，例如：明天下午3点在正心楼开组会"
+                        android:inputType="textMultiLine"
+                        android:minLines="2"
+                        android:padding="0dp"
+                        android:textColorHint="@color/app_text_muted"
+                        android:textSize="15sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnParse"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:text="识别并创建"
+                            android:textSize="14sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="16dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAdd"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:text="手动添加"
+                            android:textSize="14sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="16dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="提醒" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:checkedButton="@id/btnActive"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActive"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:text="待处理 0"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    app:cornerRadius="14dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnArchived"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:text="归档 0"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"
+                    app:cornerRadius="14dp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <TextView
+                android:id="@+id/tvListHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:alpha="0.7"
+                android:text="点按查看全文 · 左滑归档 · 长按删除"
+                android:textColor="@color/app_text_muted"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/emptyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="18dp"
+                android:text="还没有提醒。收到含时间的通知后会自动出现在这里。"
+                android:textColor="@color/app_text_muted"
+                android:textSize="14sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/reminderList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="未记录的通知" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="这些通知被过滤了或没识别出时间。可以在这里补录、监听来源 App、或屏蔽该会话。"
+                android:textColor="@color/app_text_muted"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/emptyDropped"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="10dp"
+                android:text="没有未记录的通知。"
+                android:textColor="@color/app_text_muted"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:id="@+id/droppedContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearDropped"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="清空未记录列表"
+                android:textAllCaps="false"
+                android:textSize="13sp" />
+
+            <TextView
+                style="@style/SectionLabel"
+                android:text="最近处理的通知" />
+
+            <TextView
+                android:id="@+id/logText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/app_text_muted"
+                android:textIsSelectable="true"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

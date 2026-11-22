@@ -1,20 +1,27 @@
 package cn.notialarm.ui
 
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import cn.notialarm.Fmt
 import cn.notialarm.Notifier
 import cn.notialarm.NotifyListener
@@ -22,28 +29,33 @@ import cn.notialarm.Processor
 import cn.notialarm.R
 import cn.notialarm.Reminders
 import cn.notialarm.SourceLauncher
-import cn.notialarm.alarm.AlarmScheduler
 import cn.notialarm.data.ActivityLog
 import cn.notialarm.data.DroppedStore
 import cn.notialarm.data.Incoming
 import cn.notialarm.data.Prefs
 import cn.notialarm.data.Reminder
 import cn.notialarm.data.ReminderStore
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.time.LocalDateTime
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var reminderContainer: LinearLayout
+    private lateinit var reminderList: RecyclerView
+    private lateinit var adapter: ReminderAdapter
     private lateinit var droppedContainer: LinearLayout
     private lateinit var emptyText: TextView
     private lateinit var emptyDropped: TextView
     private lateinit var logText: TextView
     private lateinit var tvPermWarning: TextView
     private lateinit var tvListHint: TextView
-    private lateinit var btnActive: Button
-    private lateinit var btnArchived: Button
+    private lateinit var btnActive: MaterialButton
+    private lateinit var btnArchived: MaterialButton
+    private lateinit var toggleGroup: MaterialButtonToggleGroup
 
     /** false = 看待处理；true = 看归档。 */
     private var showArchived = false
@@ -52,8 +64,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Notifier.ensureChannels(this)
+        window.navigationBarColor = getColor(R.color.app_background)
+        window.statusBarColor = getColor(R.color.app_background)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightNavigationBars = true
+            isAppearanceLightStatusBars = true
+        }
 
-        reminderContainer = findViewById(R.id.reminderContainer)
+        reminderList = findViewById(R.id.reminderList)
         droppedContainer = findViewById(R.id.droppedContainer)
         emptyText = findViewById(R.id.emptyText)
         emptyDropped = findViewById(R.id.emptyDropped)
@@ -62,6 +80,39 @@ class MainActivity : AppCompatActivity() {
         tvListHint = findViewById(R.id.tvListHint)
         btnActive = findViewById(R.id.btnActive)
         btnArchived = findViewById(R.id.btnArchived)
+        toggleGroup = findViewById(R.id.toggleGroup)
+
+        adapter = ReminderAdapter(
+            onOpenDetail = { showDetail(it) },
+            onLongPress = { confirmDelete(it) },
+            onEdit = {
+                if (it.archived) {
+                    Reminders.restore(this, it.id)
+                    toast("已恢复到待处理")
+                } else {
+                    showEdit(it)
+                }
+            },
+            onOpen = { openSource(it) },
+            onConfirm = {
+                if (it.archived) {
+                    Reminders.delete(this, it.id)
+                    toast("已删除")
+                } else {
+                    Reminders.confirm(this, it.id)
+                    toast("已彻底关闭，这条以后不会再响")
+                }
+            }
+        )
+        reminderList.layoutManager = LinearLayoutManager(this)
+        reminderList.adapter = adapter
+        // 外层是 ScrollView：关掉 RecyclerView 自己的增删动画，避免 wrap_content 高度残留空白
+        reminderList.itemAnimator = null
+        attachSwipeToArchive()
+
+        findViewById<ImageButton>(R.id.btnSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
 
         val input = findViewById<EditText>(R.id.inputText)
         findViewById<Button>(R.id.btnParse).setOnClickListener {
@@ -82,10 +133,13 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnClearDropped).setOnClickListener {
             DroppedStore.clear(this)
             renderDropped()
-            Toast.makeText(this, "已清空未记录列表", Toast.LENGTH_SHORT).show()
+            toast("已清空未记录列表")
         }
-        btnActive.setOnClickListener { showArchived = false; renderReminders() }
-        btnArchived.setOnClickListener { showArchived = true; renderReminders() }
+        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            showArchived = checkedId == R.id.btnArchived
+            renderReminders()
+        }
 
         handleIntent(intent)
     }
@@ -100,19 +154,6 @@ class MainActivity : AppCompatActivity() {
         if (id > 0) ReminderStore.get(this, id)?.let { showEdit(it) }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_settings) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
     override fun onResume() {
         super.onResume()
         Reminders.onChange = {
@@ -121,12 +162,8 @@ class MainActivity : AppCompatActivity() {
             renderDropped()
             renderPermWarning()
         }
-        NotifyListener.onStateChanged = {
-            renderPermWarning()
-        }
-        // 权限开着但服务没连上：自动重连一次
+        NotifyListener.onStateChanged = { renderPermWarning() }
         if (Permissions.listenerGranted(this) && !NotifyListener.connected) NotifyListener.rebind(this)
-        // 顺手把已经过了时间的提醒归档，列表不再被旧项占满
         Reminders.housekeeping(this)
         renderPermWarning()
         renderReminders()
@@ -154,21 +191,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun renderReminders() {
-        reminderContainer.removeAllViews()
         val active = ReminderStore.active(this)
         val archived = ReminderStore.archived(this)
         btnActive.text = "待处理 ${active.size}"
         btnArchived.text = "归档 ${archived.size}"
-        btnActive.isEnabled = true
-        btnArchived.isEnabled = true
-        btnActive.alpha = if (!showArchived) 1f else 0.5f
-        btnArchived.alpha = if (showArchived) 1f else 0.5f
 
         val list = if (showArchived) archived else active
         tvListHint.text = if (showArchived) {
             "点按查看全文 · 左滑恢复 · 长按删除"
         } else {
-            "点按查看全文 · 左滑归档 · 长按修改或删除"
+            "点按查看全文 · 左滑归档 · 长按删除"
         }
         emptyText.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         emptyText.text = if (showArchived) {
@@ -176,131 +208,154 @@ class MainActivity : AppCompatActivity() {
         } else {
             "还没有待处理提醒。收到含时间的通知后会自动出现在这里。"
         }
-
-        val now = LocalDateTime.now()
-        for (r in list) {
-            val v = layoutInflater.inflate(R.layout.item_reminder, reminderContainer, false)
-            v.findViewById<TextView>(R.id.title).text = r.title
-            v.findViewById<TextView>(R.id.time).text = Fmt.dateTime(r.time)
-            val meta = buildString {
-                if (r.archived) {
-                    append("已归档")
-                    if (r.confirmed) append(" · 已确认")
-                } else {
-                    append(Fmt.offsets(r.offsets))
-                    val times = AlarmScheduler.plan(this@MainActivity, r)
-                    if (times.isNotEmpty()) append(" · ").append(Fmt.ringTimes(r.time, times))
-                }
-                append("\n来自 ").append(r.source)
-                if (r.timeAssumed) append(" · 原通知只写了日期")
-            }
-            v.findViewById<TextView>(R.id.meta).text = meta
-            if (!r.archived && r.time.isBefore(now)) v.alpha = 0.55f
-
-            // 点按看全文、左滑归档/恢复、长按修改或删除，列表不再堆一排按钮
-            var downX = 0f
-            var downY = 0f
-            var downAt = 0L
-            var swiped = false
-            var longFired = false
-            val longPress = Runnable {
-                longFired = true
-                showItemMenu(r)
-            }
-            v.setOnTouchListener { view, e ->
-                when (e.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        downX = e.rawX
-                        downY = e.rawY
-                        downAt = System.currentTimeMillis()
-                        swiped = false
-                        longFired = false
-                        view.postDelayed(longPress, 500)
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        val dx = e.rawX - downX
-                        val dy = e.rawY - downY
-                        if (abs(dx) > dp(12) || abs(dy) > dp(12)) view.removeCallbacks(longPress)
-                        if (dx < -dp(70) && abs(dx) > abs(dy) * 1.5f) swiped = true
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        view.removeCallbacks(longPress)
-                        if (swiped) {
-                            if (r.archived) {
-                                Reminders.restore(this@MainActivity, r.id)
-                                Toast.makeText(this@MainActivity, "已恢复到待处理", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Reminders.archive(this@MainActivity, r.id)
-                                Toast.makeText(this@MainActivity, "已归档", Toast.LENGTH_SHORT).show()
-                            }
-                        } else if (!longFired && System.currentTimeMillis() - downAt < 400) {
-                            showDetail(r)
-                        }
-                    }
-                    MotionEvent.ACTION_CANCEL -> view.removeCallbacks(longPress)
-                }
-                true
-            }
-
-            v.findViewById<Button>(R.id.btnOpen).apply {
-                visibility = if (r.pkg.isNotBlank() || r.notifKey.isNotBlank()) View.VISIBLE else View.GONE
-                setOnClickListener { openSource(r) }
-            }
-            v.findViewById<Button>(R.id.btnConfirm).apply {
-                visibility = if (r.archived) View.GONE else View.VISIBLE
-                setOnClickListener {
-                    Reminders.confirm(this@MainActivity, r.id)
-                    Toast.makeText(this@MainActivity, "已彻底关闭，这条以后不会再响", Toast.LENGTH_SHORT).show()
-                }
-            }
-            reminderContainer.addView(v)
-        }
+        adapter.submit(list)
     }
 
-    /** 长按菜单：平时不显示修改/删除按钮。 */
-    private fun showItemMenu(r: Reminder) {
-        val actions = if (r.archived) arrayOf("恢复", "删除") else arrayOf("修改", "删除")
-        MaterialAlertDialogBuilder(this)
-            .setTitle(r.title)
-            .setItems(actions) { _, which ->
+    /** 左滑归档/恢复：阈值 26%，快速轻扫也能触发；滑动时露出圆角色块和文字。 */
+    private fun attachSwipeToArchive() {
+        val callback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.26f
+
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue * 0.35f
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val r = adapter.itemAt(viewHolder.bindingAdapterPosition) ?: return
                 if (r.archived) {
-                    if (which == 0) {
-                        Reminders.restore(this, r.id)
-                        Toast.makeText(this, "已恢复到待处理", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Reminders.delete(this, r.id)
-                    }
+                    Reminders.restore(this@MainActivity, r.id)
+                    toast("已恢复到待处理")
                 } else {
-                    if (which == 0) showEdit(r) else Reminders.delete(this, r.id)
+                    Reminders.archive(this@MainActivity, r.id)
+                    toast("已归档，可在“归档”里恢复")
                 }
+                renderReminders()
+            }
+
+            override fun onChildDraw(
+                c: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                val item = viewHolder.itemView
+                if (dX < 0 && actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val r = adapter.itemAt(viewHolder.bindingAdapterPosition)
+                    val archived = r?.archived == true
+                    val bg = getColor(if (archived) R.color.swipe_restore else R.color.swipe_archive)
+                    val rect = RectF(
+                        item.left.toFloat(),
+                        item.top.toFloat(),
+                        item.right.toFloat(),
+                        item.bottom.toFloat()
+                    )
+                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg }
+                    val radius = dp(20).toFloat()
+                    c.save()
+                    c.clipRect(rect)
+                    c.drawRoundRect(rect, radius, radius, paint)
+                    val label = if (archived) "恢复" else "归档"
+                    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.WHITE
+                        textSize = dp(14).toFloat()
+                        typeface = Typeface.DEFAULT_BOLD
+                        textAlign = Paint.Align.RIGHT
+                    }
+                    val tx = item.right - dp(22).toFloat()
+                    val ty = item.top + item.height / 2f -
+                        (textPaint.descent() + textPaint.ascent()) / 2f
+                    c.drawText(label, tx, ty, textPaint)
+                    // 轻微缩放，滑动更有“跟手”的重量感
+                    val scale = 1f - min(abs(dX) / item.width * 0.03f, 0.03f)
+                    item.scaleY = scale
+                    c.restore()
+                } else {
+                    item.scaleY = 1f
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            }
+        }
+        ItemTouchHelper(callback).attachToRecyclerView(reminderList)
+    }
+
+    private fun confirmDelete(r: Reminder) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("删除这条提醒？")
+            .setMessage(r.title)
+            .setPositiveButton("删除") { _, _ ->
+                Reminders.delete(this, r.id)
+                toast("已删除")
             }
             .setNegativeButton("取消", null)
             .show()
     }
 
-    /** 弹窗里正文不截断，可滚动、可复制。 */
+    /** 详情弹窗：正文可滚动可复制，底部固定三个动作。 */
     private fun showDetail(r: Reminder) {
-        val tv = TextView(this).apply {
-            text = buildString {
-                append(Fmt.dateTime(r.time))
-                if (r.timeAssumed) append("（原通知只写了日期，时间按默认估算）")
-                append("\n来自 ").append(r.source)
-                if (r.confirmed) append("\n已彻底关闭（以后不会再提醒）")
-                else if (r.archived) append("\n已归档")
-                append("\n\n").append(r.text.ifBlank { "（没有正文）" })
+        val v = layoutInflater.inflate(R.layout.dialog_detail, null)
+        val dm = resources.displayMetrics
+        val body = r.text.ifBlank { "（没有正文）" }
+        val lines = body.length / 18 + 1
+        val bodyHeight = min(dp(320), max(dp(64), dp(24 * min(lines, 12) + 16)))
+        v.findViewById<ScrollView>(R.id.dlgBodyScroll).layoutParams =
+            v.findViewById<ScrollView>(R.id.dlgBodyScroll).layoutParams.apply {
+                height = min(bodyHeight, (dm.heightPixels * 0.42f).toInt())
             }
-            textSize = 15f
-            setTextIsSelectable(true)
-            setPadding(dp(20), dp(12), dp(20), dp(8))
+        v.findViewById<TextView>(R.id.dlgTitle).text = r.title
+        v.findViewById<TextView>(R.id.dlgWhen).text = buildString {
+            append(Fmt.dateTime(r.time))
+            if (r.timeAssumed) append("（原通知只写了日期，时间按默认估算）")
         }
-        val sv = ScrollView(this).apply { addView(tv) }
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(r.title)
-            .setView(sv)
-            .setPositiveButton("关闭", null)
-            .setNeutralButton("打开原通知") { _, _ -> openSource(r) }
-            .create()
+        v.findViewById<TextView>(R.id.dlgSource).text = buildString {
+            append("来自 ").append(r.source)
+            if (r.confirmed) append(" · 已彻底关闭")
+            else if (r.archived) append(" · 已归档")
+        }
+        v.findViewById<TextView>(R.id.dlgBody).text = r.text.ifBlank { "（没有正文）" }
+
+        val b1 = v.findViewById<MaterialButton>(R.id.dlgBtn1)
+        val b2 = v.findViewById<MaterialButton>(R.id.dlgBtn2)
+        val b3 = v.findViewById<MaterialButton>(R.id.dlgBtn3)
+        val dialog = MaterialAlertDialogBuilder(this).setView(v).create()
+
+        if (r.archived) {
+            b1.text = "恢复"
+            b3.text = "删除"
+            b1.setOnClickListener {
+                Reminders.restore(this, r.id)
+                dialog.dismiss()
+                toast("已恢复到待处理")
+            }
+            b3.setOnClickListener {
+                Reminders.delete(this, r.id)
+                dialog.dismiss()
+                toast("已删除")
+            }
+        } else {
+            b1.text = "修改"
+            b3.text = "彻底关闭"
+            b1.setOnClickListener {
+                dialog.dismiss()
+                showEdit(r)
+            }
+            b3.setOnClickListener {
+                Reminders.confirm(this, r.id)
+                dialog.dismiss()
+                toast("已彻底关闭，这条以后不会再响")
+            }
+        }
+        b2.text = "打开原通知"
+        b2.setOnClickListener { openSource(r) }
+
         dialog.show()
+        dialog.window?.setLayout(dm.widthPixels - dp(32), ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private fun openSource(r: Reminder) {
@@ -331,7 +386,7 @@ class MainActivity : AppCompatActivity() {
                     p.monitoredPackages = p.monitoredPackages + d.pkg
                     p.monitorAll = false
                     DroppedStore.remove(this@MainActivity, d)
-                    Toast.makeText(this@MainActivity, "已加入监听：${d.app}", Toast.LENGTH_SHORT).show()
+                    toast("已加入监听：${d.app}")
                     renderDropped()
                 }
             }
@@ -348,7 +403,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     Reminders.archiveBlacklisted(this@MainActivity)
                     DroppedStore.remove(this@MainActivity, d)
-                    Toast.makeText(this@MainActivity, "以后不再记录", Toast.LENGTH_SHORT).show()
+                    toast("以后不再记录")
                     renderDropped()
                 }
             }
@@ -403,7 +458,9 @@ class MainActivity : AppCompatActivity() {
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val title = etTitle.text.toString().trim().ifBlank { "提醒" }
-                val time = runCatching { LocalDateTime.parse(etTime.text.toString().trim(), Fmt.INPUT) }.getOrNull()
+                val time = runCatching {
+                    LocalDateTime.parse(etTime.text.toString().trim(), Fmt.INPUT)
+                }.getOrNull()
                 val offsets = Prefs.parseOffsets(etOffsets.text.toString())
                 when {
                     time == null -> etTime.error = "格式：2026-11-01 15:00"
@@ -420,6 +477,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+    }
+
+    private fun toast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

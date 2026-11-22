@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
@@ -85,6 +86,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         title = "设置"
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         prefs = Prefs(this)
 
         permContainer = findViewById(R.id.permContainer)
@@ -424,5 +426,13 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }.start()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            finish()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 }
