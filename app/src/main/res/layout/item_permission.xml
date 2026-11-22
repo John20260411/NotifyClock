@@ -28,8 +28,8 @@
 
     <Button
         android:id="@+id/permFix"
-        style="@style/Widget.Material3.Button.TonalButton"
+        style="@style/ActionButton.Small"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="36dp"
         android:text="去开启" />
 </LinearLayout>
