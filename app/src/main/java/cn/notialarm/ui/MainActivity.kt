@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -31,6 +32,7 @@ import cn.notialarm.data.Reminder
 import cn.notialarm.data.ReminderStore
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.time.LocalDateTime
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var logText: TextView
     private lateinit var tvDiag: TextView
     private lateinit var tvPermWarning: TextView
+    private lateinit var tvListHint: TextView
     private lateinit var btnActive: Button
     private lateinit var btnArchived: Button
 
@@ -59,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         logText = findViewById(R.id.logText)
         tvDiag = findViewById(R.id.tvDiag)
         tvPermWarning = findViewById(R.id.tvPermWarning)
+        tvListHint = findViewById(R.id.tvListHint)
         btnActive = findViewById(R.id.btnActive)
         btnArchived = findViewById(R.id.btnArchived)
 
@@ -167,6 +171,11 @@ class MainActivity : AppCompatActivity() {
         btnArchived.alpha = if (showArchived) 1f else 0.5f
 
         val list = if (showArchived) archived else active
+        tvListHint.text = if (showArchived) {
+            "点按查看全文 · 左滑恢复 · 长按删除"
+        } else {
+            "点按查看全文 · 左滑归档 · 长按修改或删除"
+        }
         emptyText.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         emptyText.text = if (showArchived) {
             "归档是空的。已过期或你点过“彻底关闭”的提醒会放在这里。"
@@ -194,7 +203,51 @@ class MainActivity : AppCompatActivity() {
             v.findViewById<TextView>(R.id.meta).text = meta
             if (!r.archived && r.time.isBefore(now)) v.alpha = 0.55f
 
-            v.findViewById<Button>(R.id.btnDetail).setOnClickListener { showDetail(r) }
+            // 点按看全文、左滑归档/恢复、长按修改或删除，列表不再堆一排按钮
+            var downX = 0f
+            var downY = 0f
+            var downAt = 0L
+            var swiped = false
+            var longFired = false
+            val longPress = Runnable {
+                longFired = true
+                showItemMenu(r)
+            }
+            v.setOnTouchListener { view, e ->
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = e.rawX
+                        downY = e.rawY
+                        downAt = System.currentTimeMillis()
+                        swiped = false
+                        longFired = false
+                        view.postDelayed(longPress, 500)
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = e.rawX - downX
+                        val dy = e.rawY - downY
+                        if (abs(dx) > dp(12) || abs(dy) > dp(12)) view.removeCallbacks(longPress)
+                        if (dx < -dp(70) && abs(dx) > abs(dy) * 1.5f) swiped = true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        view.removeCallbacks(longPress)
+                        if (swiped) {
+                            if (r.archived) {
+                                Reminders.restore(this@MainActivity, r.id)
+                                Toast.makeText(this@MainActivity, "已恢复到待处理", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Reminders.archive(this@MainActivity, r.id)
+                                Toast.makeText(this@MainActivity, "已归档", Toast.LENGTH_SHORT).show()
+                            }
+                        } else if (!longFired && System.currentTimeMillis() - downAt < 400) {
+                            showDetail(r)
+                        }
+                    }
+                    MotionEvent.ACTION_CANCEL -> view.removeCallbacks(longPress)
+                }
+                true
+            }
+
             v.findViewById<Button>(R.id.btnOpen).apply {
                 visibility = if (r.pkg.isNotBlank() || r.notifKey.isNotBlank()) View.VISIBLE else View.GONE
                 setOnClickListener { openSource(r) }
@@ -206,20 +259,29 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "已彻底关闭，这条以后不会再响", Toast.LENGTH_SHORT).show()
                 }
             }
-            v.findViewById<Button>(R.id.btnArchive).apply {
-                visibility = if (r.archived) View.GONE else View.VISIBLE
-                setOnClickListener { Reminders.archive(this@MainActivity, r.id) }
-            }
-            v.findViewById<Button>(R.id.btnRestore).apply {
-                visibility = if (r.archived) View.VISIBLE else View.GONE
-                setOnClickListener { Reminders.restore(this@MainActivity, r.id) }
-            }
-            v.findViewById<Button>(R.id.btnEdit).setOnClickListener { showEdit(r) }
-            v.findViewById<Button>(R.id.btnDelete).setOnClickListener {
-                Reminders.delete(this, r.id)
-            }
             reminderContainer.addView(v)
         }
+    }
+
+    /** 长按菜单：平时不显示修改/删除按钮。 */
+    private fun showItemMenu(r: Reminder) {
+        val actions = if (r.archived) arrayOf("恢复", "删除") else arrayOf("修改", "删除")
+        MaterialAlertDialogBuilder(this)
+            .setTitle(r.title)
+            .setItems(actions) { _, which ->
+                if (r.archived) {
+                    if (which == 0) {
+                        Reminders.restore(this, r.id)
+                        Toast.makeText(this, "已恢复到待处理", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Reminders.delete(this, r.id)
+                    }
+                } else {
+                    if (which == 0) showEdit(r) else Reminders.delete(this, r.id)
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     /** 弹窗里正文不截断，可滚动、可复制。 */

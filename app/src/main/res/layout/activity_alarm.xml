@@ -27,29 +27,29 @@
                 android:gravity="center"
                 android:maxLines="2"
                 android:textColor="#FFB4C5FF"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:gravity="center"
-                android:maxLines="3"
+                android:maxLines="2"
                 android:textColor="#FFFFFFFF"
-                android:textSize="23sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvSource"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
                 android:textColor="#CCFFFFFF"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
             <!-- 正文独立滚动，横屏也能看全文；按钮永远在屏幕内 -->
             <ScrollView
@@ -74,21 +74,11 @@
                 android:id="@+id/tvSnoozeLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:text="延后提醒"
                 android:textColor="#FFB4C5FF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvSnoozeHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:alpha="0.75"
-                android:text="现在不方便处理？点一个时间，稍后再次响铃。"
-                android:textColor="#FFB4C5FF"
-                android:textSize="12sp" />
 
             <!-- 让选项自动换行，横屏竖屏都能完整看到，不再被截断 -->
             <com.google.android.material.chip.ChipGroup
@@ -130,17 +120,6 @@
                     android:text="打开原通知"
                     android:textSize="16sp" />
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvActionsHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:alpha="0.7"
-                android:lineSpacingExtra="2dp"
-                android:text="仅关闭本次：这次不响，之后的提前提醒仍会响。\n彻底关闭：这件事处理完了，以后都不再提醒。"
-                android:textColor="#FFB4C5FF"
-                android:textSize="12sp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </FrameLayout>

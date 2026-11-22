@@ -53,7 +53,7 @@ class AlarmActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this) { send(AlarmService.ACTION_STOP) }
 
         val chips = findViewById<ChipGroup>(R.id.snoozeChips)
-        for (min in Prefs(this).snoozeOptions) {
+        for (min in Prefs(this).snoozeOptions.filter { it != 60 }) {
             chips.addView(Chip(this).apply {
                 text = Fmt.minutes(min)
                 setOnClickListener { send(AlarmService.ACTION_SNOOZE, min) }

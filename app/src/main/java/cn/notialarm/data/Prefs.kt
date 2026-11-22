@@ -98,7 +98,7 @@ class Prefs(ctx: Context) {
     /** 弹窗里的“延后”选项（分钟）。 */
     var snoozeOptions: List<Int>
         get() = parseOffsets(sp.getString("snooze", null) ?: "")?.filter { it > 0 }?.sorted()
-            ?.takeIf { it.isNotEmpty() } ?: listOf(5, 10, 30, 60)
+            ?.takeIf { it.isNotEmpty() } ?: listOf(5, 10, 30)
         set(v) = sp.edit().putString("snooze", v.joinToString(",")).apply()
 
     var quietEnabled: Boolean

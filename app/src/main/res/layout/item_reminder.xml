@@ -3,13 +3,19 @@
     style="@style/Widget.Material3.CardView.Filled"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp">
+    android:layout_marginBottom="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp">
 
         <TextView
             android:id="@+id/title"
@@ -34,84 +40,28 @@
             android:textSize="12sp" />
 
         <LinearLayout
+            android:id="@+id/itemActions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="end"
             android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnDetail"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="全文"
-                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/btnOpen"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:minWidth="0dp"
-                android:text="跳转"
+                android:text="打开原通知"
                 android:textSize="12sp" />
 
             <Button
                 android:id="@+id/btnConfirm"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:minWidth="0dp"
                 android:text="彻底关闭"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnArchive"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="归档"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnEdit"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="修改"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnRestore"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="恢复"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btnDelete"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="删除"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>

@@ -90,6 +90,16 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tvListHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.65"
+            android:paddingHorizontal="4dp"
+            android:paddingBottom="6dp"
+            android:text="点按查看全文 · 左滑归档 · 长按修改或删除"
+            android:textSize="12sp" />
+
+        <TextView
             android:id="@+id/emptyText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
