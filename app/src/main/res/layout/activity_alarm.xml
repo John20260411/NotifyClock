@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        app:cardBackgroundColor="#FF1B1F3B"
+        app:cardBackgroundColor="#FF18231F"
         app:cardCornerRadius="24dp"
         app:strokeWidth="0dp">
 
@@ -26,7 +26,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:maxLines="2"
-                android:textColor="#FFB4C5FF"
+                android:textColor="#FFD8C7A5"
                 android:textSize="14sp" />
 
             <TextView
@@ -36,7 +36,7 @@
                 android:layout_marginTop="2dp"
                 android:gravity="center"
                 android:maxLines="2"
-                android:textColor="#FFFFFFFF"
+                android:textColor="#FFF7F1E6"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
-                android:textColor="#CCFFFFFF"
+                android:textColor="#CCEDE6D8"
                 android:textSize="12sp" />
 
             <!-- 正文独立滚动，横屏也能看全文；按钮永远在屏幕内 -->
@@ -65,7 +65,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:lineSpacingExtra="3dp"
-                    android:textColor="#EEFFFFFF"
+                    android:textColor="#EEF4EFE6"
                     android:textIsSelectable="true"
                     android:textSize="15sp" />
             </ScrollView>
@@ -76,7 +76,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:text="延后提醒"
-                android:textColor="#FFB4C5FF"
+                android:textColor="#FFD8C7A5"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 

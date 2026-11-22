@@ -8,6 +8,10 @@
         <item name="colorOnPrimary">@color/brand_on_primary</item>
         <item name="colorPrimaryContainer">@color/brand_container</item>
         <item name="colorOnPrimaryContainer">@color/brand_on_container</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+        <item name="colorOnSecondary">@color/brand_on_primary</item>
+        <item name="colorSecondaryContainer">@color/brand_container</item>
+        <item name="colorOnSecondaryContainer">@color/brand_on_container</item>
         <item name="android:colorBackground">@color/app_background</item>
         <item name="colorSurface">@color/app_background</item>
         <item name="colorSurfaceContainer">@color/app_surface_soft</item>
@@ -30,6 +34,10 @@
         <item name="colorOnPrimary">@color/brand_on_primary</item>
         <item name="colorPrimaryContainer">@color/brand_container</item>
         <item name="colorOnPrimaryContainer">@color/brand_on_container</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+        <item name="colorOnSecondary">@color/brand_on_primary</item>
+        <item name="colorSecondaryContainer">@color/brand_container</item>
+        <item name="colorOnSecondaryContainer">@color/brand_on_container</item>
         <item name="android:colorBackground">@color/app_background</item>
         <item name="colorSurface">@color/app_background</item>
         <item name="android:statusBarColor">@color/app_background</item>
@@ -51,7 +59,10 @@
 
     <!-- 半透明：亮屏时像一个盖在当前界面上的弹窗 -->
     <style name="Theme.NotiAlarm.Alarm" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">#FF8C9EFF</item>
+        <item name="colorPrimary">#FFD8C7A5</item>
+        <item name="colorOnPrimary">#FF1C1A14</item>
+        <item name="colorSecondary">#FFD8C7A5</item>
+        <item name="colorOnSecondary">#FF1C1A14</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
@@ -71,7 +82,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">22dp</item>
         <item name="android:layout_marginBottom">8dp</item>
-        <item name="android:textColor">@color/brand_primary</item>
+        <item name="android:textColor">@color/brand_accent</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.08</item>

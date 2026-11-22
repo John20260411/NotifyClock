@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="launcher_bg">#FF4F46E5</color>
+    <color name="launcher_bg">#FF234B43</color>
 
-    <!-- 品牌色：靛蓝，白天模式的浅底 + 深色文字 -->
-    <color name="brand_primary">#4F46E5</color>
+    <!-- 墨绿 + 暖象牙 + 香槟金：低饱和、深色主按钮，避免大面积亮色 -->
+    <color name="brand_primary">#234B43</color>
     <color name="brand_on_primary">#FFFFFFFF</color>
-    <color name="brand_container">#FFE8E7FF</color>
-    <color name="brand_on_container">#FF17134F</color>
+    <color name="brand_container">#E4EDE8</color>
+    <color name="brand_on_container">#12332C</color>
+    <color name="brand_accent">#7A5A32</color>
 
-    <color name="app_background">#FFF8F7FF</color>
-    <color name="app_surface">#FFFFFFFF</color>
-    <color name="app_surface_soft">#FFF1EFF9</color>
-    <color name="app_outline">#FFDCD8EA</color>
-    <color name="app_text">#FF1B1B24</color>
-    <color name="app_text_muted">#FF6F6B80</color>
+    <color name="app_background">#F6F2E9</color>
+    <color name="app_surface">#FFFAF3</color>
+    <color name="app_surface_soft">#EDE7DA</color>
+    <color name="app_outline">#D9D2C3</color>
+    <color name="app_text">#1E2521</color>
+    <color name="app_text_muted">#6C726C</color>
 
-    <!-- 左滑底色：归档用青绿，恢复用蓝 -->
-    <color name="swipe_archive">#FF0F766E</color>
-    <color name="swipe_restore">#FF2563EB</color>
-    <color name="danger">#FFB3261E</color>
+    <!-- 左滑底色：归档用深松绿，恢复用石板蓝 -->
+    <color name="swipe_archive">#2F6B5F</color>
+    <color name="swipe_restore">#3A5B73</color>
+    <color name="danger">#A33B2B</color>
 </resources>
