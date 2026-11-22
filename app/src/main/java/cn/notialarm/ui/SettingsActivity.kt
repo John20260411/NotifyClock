@@ -32,6 +32,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import cn.notialarm.Fmt
 import cn.notialarm.Notifier
 import cn.notialarm.NotifyListener
@@ -66,6 +67,25 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnPreview: Button
     private lateinit var rgVolume: RadioGroup
 
+    private lateinit var etOffsets: EditText
+    private lateinit var swSound: MaterialSwitch
+    private lateinit var swVibrate: MaterialSwitch
+    private lateinit var etRing: EditText
+    private lateinit var etSnooze: EditText
+    private lateinit var swQuiet: MaterialSwitch
+    private lateinit var swQuietKeep: MaterialSwitch
+    private lateinit var rgMode: RadioGroup
+    private lateinit var etUrl: EditText
+    private lateinit var etKey: EditText
+    private lateinit var etModel: EditText
+    private lateinit var swMonitorAll: MaterialSwitch
+    private lateinit var btnQuietStart: Button
+    private lateinit var btnQuietEnd: Button
+
+    /** 初始化期间不保存，避免把默认值/半成品写回去。 */
+    private var loading = true
+    private val saveRunnable = Runnable { saveAll(false) }
+
     private val pickRingtone = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
         if (res.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val uri: Uri? = if (Build.VERSION.SDK_INT >= 33) {
@@ -95,6 +115,7 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
         title = "设置"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.subtitle = "修改会自动保存"
         prefs = Prefs(this)
 
         permContainer = findViewById(R.id.permContainer)
@@ -104,20 +125,20 @@ class SettingsActivity : AppCompatActivity() {
         Permissions.render(this, permContainer)
         renderDiag()
 
-        val etOffsets = findViewById<EditText>(R.id.etOffsets)
-        val swSound = findViewById<MaterialSwitch>(R.id.swSound)
-        val swVibrate = findViewById<MaterialSwitch>(R.id.swVibrate)
-        val etRing = findViewById<EditText>(R.id.etRingMinutes)
-        val etSnooze = findViewById<EditText>(R.id.etSnooze)
-        val swQuiet = findViewById<MaterialSwitch>(R.id.swQuiet)
-        val swQuietKeep = findViewById<MaterialSwitch>(R.id.swQuietKeep)
-        val btnQuietStart = findViewById<Button>(R.id.btnQuietStart)
-        val btnQuietEnd = findViewById<Button>(R.id.btnQuietEnd)
-        val rgMode = findViewById<RadioGroup>(R.id.rgMode)
-        val etUrl = findViewById<EditText>(R.id.etUrl)
-        val etKey = findViewById<EditText>(R.id.etKey)
-        val etModel = findViewById<EditText>(R.id.etModel)
-        val swMonitorAll = findViewById<MaterialSwitch>(R.id.swMonitorAll)
+        etOffsets = findViewById(R.id.etOffsets)
+        swSound = findViewById(R.id.swSound)
+        swVibrate = findViewById(R.id.swVibrate)
+        etRing = findViewById(R.id.etRingMinutes)
+        etSnooze = findViewById(R.id.etSnooze)
+        swQuiet = findViewById(R.id.swQuiet)
+        swQuietKeep = findViewById(R.id.swQuietKeep)
+        btnQuietStart = findViewById(R.id.btnQuietStart)
+        btnQuietEnd = findViewById(R.id.btnQuietEnd)
+        rgMode = findViewById(R.id.rgMode)
+        etUrl = findViewById(R.id.etUrl)
+        etKey = findViewById(R.id.etKey)
+        etModel = findViewById(R.id.etModel)
+        swMonitorAll = findViewById(R.id.swMonitorAll)
         val spBlackType = findViewById<Spinner>(R.id.spBlackType)
         val etBlackValue = findViewById<EditText>(R.id.etBlackValue)
         tvSound = findViewById(R.id.tvSound)
@@ -148,6 +169,20 @@ class SettingsActivity : AppCompatActivity() {
         etKey.setText(prefs.llmApiKey)
         etModel.setText(prefs.llmModel)
         swMonitorAll.isChecked = prefs.monitorAll
+
+        // 所有设置项都即时生效：变更后 400ms 合并写一次，离开页面时再强制落盘一次。
+        etOffsets.doAfterTextChanged { scheduleSave() }
+        etRing.doAfterTextChanged { scheduleSave() }
+        etSnooze.doAfterTextChanged { scheduleSave() }
+        etUrl.doAfterTextChanged { scheduleSave() }
+        etKey.doAfterTextChanged { scheduleSave() }
+        etModel.doAfterTextChanged { scheduleSave() }
+        swSound.setOnCheckedChangeListener { _, _ -> scheduleSave() }
+        swVibrate.setOnCheckedChangeListener { _, _ -> scheduleSave() }
+        swQuiet.setOnCheckedChangeListener { _, _ -> scheduleSave() }
+        swQuietKeep.setOnCheckedChangeListener { _, _ -> scheduleSave() }
+        swMonitorAll.setOnCheckedChangeListener { _, _ -> scheduleSave() }
+        rgMode.setOnCheckedChangeListener { _, _ -> scheduleSave() }
         spBlackType.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
@@ -205,18 +240,23 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
         btnPreview.setOnClickListener { if (preview == null) startPreview() else stopPreview() }
-        rgVolume.setOnCheckedChangeListener { _, _ -> if (preview != null) { stopPreview(); startPreview() } }
+        rgVolume.setOnCheckedChangeListener { _, _ ->
+            scheduleSave()
+            if (preview != null) { stopPreview(); startPreview() }
+        }
 
         btnQuietStart.setOnClickListener {
             TimePickerDialog(this, { _, h, m ->
                 quietStart = LocalTime.of(h, m)
                 btnQuietStart.text = "开始 $quietStart"
+                scheduleSave()
             }, quietStart.hour, quietStart.minute, true).show()
         }
         btnQuietEnd.setOnClickListener {
             TimePickerDialog(this, { _, h, m ->
                 quietEnd = LocalTime.of(h, m)
                 btnQuietEnd.text = "结束 $quietEnd"
+                scheduleSave()
             }, quietEnd.hour, quietEnd.minute, true).show()
         }
 
@@ -239,57 +279,86 @@ class SettingsActivity : AppCompatActivity() {
             }.start()
         }
 
-        findViewById<Button>(R.id.btnSave).setOnClickListener {
-            val offsets = Prefs.parseOffsets(etOffsets.text.toString())
-            if (offsets == null) {
-                etOffsets.error = "用逗号分隔的分钟数，如 60,10,0（最多 ${Prefs.MAX_OFFSETS} 个）"
-                return@setOnClickListener
-            }
-            val ring = etRing.text.toString().trim().toIntOrNull()
-            if (ring == null || ring !in 0..Prefs.MAX_RING_MINUTES) {
-                etRing.error = "0–${Prefs.MAX_RING_MINUTES} 分钟，0 = 一直响到确认"
-                return@setOnClickListener
-            }
-            val snooze = Prefs.parseOffsets(etSnooze.text.toString())?.filter { it > 0 }
-            if (snooze.isNullOrEmpty()) {
-                etSnooze.error = "用逗号分隔的分钟数，如 5,10,30,60"
-                return@setOnClickListener
-            }
-            if (swQuiet.isChecked && quietStart == quietEnd) {
-                Toast.makeText(this, "免打扰的开始和结束时间不能相同", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            prefs.defaultOffsets = offsets
-            prefs.sound = swSound.isChecked
-            prefs.vibrate = swVibrate.isChecked
-            prefs.soundUri = soundUri
-            prefs.soundName = soundName
-            prefs.useMediaVolume = rgVolume.checkedRadioButtonId == R.id.rbMediaVolume
-            prefs.ringMinutes = ring
-            prefs.snoozeOptions = snooze
-            prefs.quietEnabled = swQuiet.isChecked
-            prefs.quietStart = quietStart
-            prefs.quietEnd = quietEnd
-            prefs.quietKeepOnTime = swQuietKeep.isChecked
-            prefs.parseMode = when (rgMode.checkedRadioButtonId) {
-                R.id.rbRule -> Prefs.MODE_RULE
-                R.id.rbLlm -> Prefs.MODE_LLM
-                else -> Prefs.MODE_HYBRID
-            }
-            prefs.llmBaseUrl = etUrl.text.toString()
-            prefs.llmApiKey = etKey.text.toString()
-            prefs.llmModel = etModel.text.toString()
-            prefs.monitorAll = swMonitorAll.isChecked
-            prefs.monitoredPackages = selected.toSet()
-            DroppedStore.retainPackages(this, selected.toSet())
-            // 免打扰改了会影响已有提醒的响铃时刻
-            Reminders.archiveBlacklisted(this)
-            Reminders.rescheduleAll(this)
-            Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show()
-            finish()
+        loadApps()
+        loading = false
+    }
+
+    /** 合并短时间内的连续修改，避免每敲一个字都写盘/重排闹钟。 */
+    private fun scheduleSave() {
+        if (loading) return
+        handler.removeCallbacks(saveRunnable)
+        handler.postDelayed(saveRunnable, 400)
+    }
+
+    /**
+     * 自动保存。无效输入不覆盖旧值；只有闹钟相关设置变化时才重排。
+     * showErrors = true 用于离开页面时，对仍然无效的输入给出提示。
+     */
+    private fun saveAll(showErrors: Boolean) {
+        if (loading) return
+
+        val offsets = Prefs.parseOffsets(etOffsets.text.toString())
+        if (offsets == null) {
+            if (showErrors) etOffsets.error = "用逗号分隔的分钟数，如 60,10,0（最多 ${Prefs.MAX_OFFSETS} 个）"
+        } else {
+            etOffsets.error = null
         }
 
-        loadApps()
+        val ring = etRing.text.toString().trim().toIntOrNull()
+        val ringValid = ring != null && ring in 0..Prefs.MAX_RING_MINUTES
+        if (!ringValid && showErrors) etRing.error = "0–${Prefs.MAX_RING_MINUTES} 分钟，0 = 一直响到确认"
+        if (ringValid) etRing.error = null
+
+        val snooze = Prefs.parseOffsets(etSnooze.text.toString())?.filter { it > 0 }
+        val snoozeValid = !snooze.isNullOrEmpty()
+        if (!snoozeValid && showErrors) etSnooze.error = "用逗号分隔的分钟数，如 5,10,30,60"
+        if (snoozeValid) etSnooze.error = null
+
+        // 开始和结束相同表示没有免打扰时段，QuietHours.window 会直接返回 null。
+        val oldAlarm = listOf(
+            prefs.defaultOffsets, prefs.sound, prefs.vibrate, prefs.soundUri,
+            prefs.useMediaVolume, prefs.ringMinutes, prefs.snoozeOptions,
+            prefs.quietEnabled, prefs.quietStart, prefs.quietEnd, prefs.quietKeepOnTime,
+        )
+
+        if (offsets != null) prefs.defaultOffsets = offsets
+        prefs.sound = swSound.isChecked
+        prefs.vibrate = swVibrate.isChecked
+        prefs.soundUri = soundUri
+        prefs.soundName = soundName
+        prefs.useMediaVolume = rgVolume.checkedRadioButtonId == R.id.rbMediaVolume
+        if (ringValid) prefs.ringMinutes = ring!!
+        if (snoozeValid) prefs.snoozeOptions = snooze!!
+        prefs.quietEnabled = swQuiet.isChecked
+        prefs.quietStart = quietStart
+        prefs.quietEnd = quietEnd
+        prefs.quietKeepOnTime = swQuietKeep.isChecked
+        prefs.parseMode = when (rgMode.checkedRadioButtonId) {
+            R.id.rbRule -> Prefs.MODE_RULE
+            R.id.rbLlm -> Prefs.MODE_LLM
+            else -> Prefs.MODE_HYBRID
+        }
+        prefs.llmBaseUrl = etUrl.text.toString().trim()
+        prefs.llmApiKey = etKey.text.toString().trim()
+        prefs.llmModel = etModel.text.toString().trim()
+        prefs.monitorAll = swMonitorAll.isChecked
+        prefs.monitoredPackages = selected.toSet()
+        DroppedStore.retainPackages(this, selected.toSet())
+
+        val newAlarm = listOf(
+            prefs.defaultOffsets, prefs.sound, prefs.vibrate, prefs.soundUri,
+            prefs.useMediaVolume, prefs.ringMinutes, prefs.snoozeOptions,
+            prefs.quietEnabled, prefs.quietStart, prefs.quietEnd, prefs.quietKeepOnTime,
+        )
+        if (oldAlarm != newAlarm) Reminders.rescheduleAll(this)
+
+        supportActionBar?.subtitle = "已自动保存 ${LocalTime.now().withNano(0)}"
+        handler.removeCallbacks(resetSubtitle)
+        handler.postDelayed(resetSubtitle, 2000)
+    }
+
+    private val resetSubtitle = Runnable {
+        supportActionBar?.subtitle = "修改会自动保存"
     }
 
     override fun onResume() {
@@ -362,6 +431,7 @@ class SettingsActivity : AppCompatActivity() {
         soundName = name
         tvSound.text = "当前铃声：" + if (uri.isBlank()) "系统默认闹钟铃声" else name
         if (preview != null) { stopPreview(); startPreview() }
+        scheduleSave()
     }
 
     private fun startPreview() {
@@ -385,6 +455,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        handler.removeCallbacks(saveRunnable)
+        saveAll(true)
         NotifyListener.onStateChanged = null
         stopPreview()
         super.onPause()
@@ -462,9 +534,13 @@ class SettingsActivity : AppCompatActivity() {
                         text = "$label\n$pkg"
                         textSize = 14f
                         isChecked = pkg in selected
-                        setOnCheckedChangeListener { _, on -> if (on) selected += pkg else selected -= pkg }
+                        setOnCheckedChangeListener { _, on ->
+                            if (on) selected += pkg else selected -= pkg
+                            scheduleSave()
+                        }
                     })
                 }
+                if (firstTime) scheduleSave()
             }
         }.start()
     }

@@ -16,8 +16,8 @@ android {
         applicationId = "cn.notialarm"
         minSdk = 26
         targetSdk = 34
-        versionCode = 12
-        versionName = "0.3.6"
+        versionCode = 13
+        versionName = "0.3.7"
     }
 
     buildTypes {
