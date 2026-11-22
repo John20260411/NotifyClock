@@ -34,7 +34,7 @@ object Processor {
     fun submit(ctx: Context, source: String, text: String, onDone: ((Reminder?, String) -> Unit)? = null) {
         submit(
             ctx,
-            Incoming("", source, "", "", text, "", null, System.currentTimeMillis()),
+            Incoming("", source, "", "", text, "", null, System.currentTimeMillis(), recordDrop = false),
             onDone,
         )
     }
@@ -42,7 +42,10 @@ object Processor {
     private fun process(ctx: Context, incoming: Incoming): Pair<Reminder?, String> {
         val text = incoming.text
         if (text.isBlank()) return null to "通知没有正文"
-        if (fastDuplicate(incoming)) return null to "重复通知，已忽略"
+        // 主界面“试一试”没有包名，属于用户主动操作；重试也跳过去重，
+        // 否则用户删掉提醒后再试一次会被 7 天去重挡掉，看起来像“没有创建”。
+        val manual = (incoming.pkg.isBlank() && incoming.notifKey.isBlank()) || incoming.force
+        if (!manual && fastDuplicate(incoming)) return null to "重复通知，已忽略"
 
         val prefs = Prefs(ctx)
         val now = LocalDateTime.now()
@@ -61,25 +64,27 @@ object Processor {
         if (result == null) {
             val why = llmError?.let { "（大模型出错：$it）" }.orEmpty()
             ActivityLog.add(ctx, "${now.format(LOG_FMT)} [${incoming.source}] 未识别：$brief$why")
-            DroppedStore.add(
-                ctx,
-                Dropped(
-                    pkg = incoming.pkg,
-                    app = incoming.app,
-                    conversation = incoming.conversation,
-                    title = incoming.title,
-                    text = text,
-                    reason = "没有识别到时间$why",
-                ),
-            )
-            Diag.onDropped(ctx)
+            if (incoming.recordDrop) {
+                DroppedStore.add(
+                    ctx,
+                    Dropped(
+                        pkg = incoming.pkg,
+                        app = incoming.app,
+                        conversation = incoming.conversation,
+                        title = incoming.title,
+                        text = text,
+                        reason = "没有识别到时间$why",
+                    ),
+                )
+                Diag.onDropped(ctx)
+            }
             return null to "没有识别到时间$why"
         }
 
         val title = result.title.ifBlank { incoming.title.ifBlank { incoming.source } }
             .ifBlank { "通知" }
         val seenKey = "${incoming.pkg}|$title|${result.time}"
-        if (SeenStore.isSeen(ctx, seenKey)) {
+        if (!manual && SeenStore.isSeen(ctx, seenKey)) {
             ActivityLog.add(ctx, "${now.format(LOG_FMT)} [${incoming.source}] 7 天内已有相同提醒，已忽略")
             return null to "已有相同提醒"
         }
@@ -89,7 +94,7 @@ object Processor {
             ActivityLog.add(ctx, "${now.format(LOG_FMT)} [${incoming.source}] 已有相同提醒")
             return null to "已有相同提醒"
         }
-        SeenStore.mark(ctx, seenKey)
+        if (!manual) SeenStore.mark(ctx, seenKey)
         Diag.onCreated(ctx)
         val msg = "已创建：${Fmt.dateTime(result.time)} $title"
         ActivityLog.add(ctx, "${now.format(LOG_FMT)} [${incoming.source}] $msg（${result.matched}）")

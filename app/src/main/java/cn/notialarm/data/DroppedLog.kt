@@ -73,6 +73,14 @@ object DroppedStore {
         write(ctx, all(ctx).filterNot { it.pkg == pkg })
     }
 
+    /** 只保留用户明确勾选监听的 App，避免未勾选 App 的噪音一直堆在列表里。 */
+    @Synchronized
+    fun retainPackages(ctx: Context, allowed: Set<String>) {
+        val list = all(ctx)
+        val kept = list.filter { it.pkg in allowed }
+        if (kept.size != list.size) write(ctx, kept)
+    }
+
     @Synchronized
     fun clear(ctx: Context) = write(ctx, emptyList())
 

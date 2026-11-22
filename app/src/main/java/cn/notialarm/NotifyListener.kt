@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.NotificationListenerService
@@ -83,20 +84,45 @@ class NotifyListener : NotificationListenerService() {
             return
         }
         val n = sbn.notification
-        if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
-
         val prefs = Prefs(this)
         val app = appLabel(sbn.packageName)
         if (!replay) Diag.onReceived(this, app)
 
+        // 只处理用户明确勾选监听的 App。未勾选的 App 直接丢弃，连“未记录”都不写，
+        // 否则系统通知、键盘提示等无关内容会把“未记录的通知”列表塞满。
+        val explicitlyMonitored = sbn.packageName in prefs.monitoredPackages
+        if (!prefs.monitorAll && !explicitlyMonitored) return
+
         val extras = n.extras
         val rawTitle = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
+        val messaging = runCatching {
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
+        }.getOrNull()
         val conversation = extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)
-            ?.toString()?.trim().orEmpty().ifBlank { rawTitle }
-        val text = extractText(n)
+            ?.toString()?.trim().orEmpty()
+            .ifBlank { messaging?.conversationTitle?.toString()?.trim().orEmpty() }
+            .ifBlank { extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty() }
+            .ifBlank { rawTitle }
+        val text = extractText(n, messaging)
+        val groupSummary = n.flags and Notification.FLAG_GROUP_SUMMARY != 0
+        val ongoing = n.flags and Notification.FLAG_ONGOING_EVENT != 0
+        val hasTime = TimeParser.hasTimeHint(text)
 
         if (text.isBlank()) {
-            drop(sbn, app, conversation, rawTitle, "", "通知没有正文（可能关闭了“通知显示消息详情”）")
+            drop(
+                sbn, app, conversation, rawTitle, "", "通知没有正文（可能关闭了“通知显示消息详情”）",
+                recordDrop = explicitlyMonitored,
+            )
+            return
+        }
+
+        // 群聊汇总通常只有“3 条新消息”，没有可解析的时间；有时间的汇总仍尝试解析。
+        // 明确勾选监听的 App 被这里挡下时写入“未记录”，否则用户只看到“没反应”。
+        if (groupSummary && !hasTime) {
+            drop(
+                sbn, app, conversation, rawTitle, text, "群聊汇总里没有可识别的时间",
+                recordDrop = explicitlyMonitored,
+            )
             return
         }
 
@@ -107,16 +133,13 @@ class NotifyListener : NotificationListenerService() {
             return
         }
 
-        if (!prefs.monitorAll && sbn.packageName !in prefs.monitoredPackages) {
-            drop(sbn, app, conversation, rawTitle, text, "这个 App 不在监听列表")
-            return
-        }
-
-        val ongoing = n.flags and Notification.FLAG_ONGOING_EVENT != 0
-        if (ongoing) {
-            if (TimeParser.hasTimeHint(text)) {
-                drop(sbn, app, conversation, rawTitle, text, "常驻/进行中的通知，未自动创建（可在未记录列表里重试）")
-            }
+        // 常驻通知多数是播放器/前台服务；只有确实带时间时才尝试创建，
+        // 避免微信“正在运行”之类的常驻通知被误当成提醒。
+        if (ongoing && !hasTime) {
+            drop(
+                sbn, app, conversation, rawTitle, text, "常驻通知里没有可识别的时间",
+                recordDrop = explicitlyMonitored,
+            )
             return
         }
 
@@ -133,6 +156,7 @@ class NotifyListener : NotificationListenerService() {
                 notifKey = sbn.key,
                 contentIntent = n.contentIntent,
                 postedAt = sbn.postTime,
+                recordDrop = explicitlyMonitored,
             ),
         )
     }
@@ -144,8 +168,10 @@ class NotifyListener : NotificationListenerService() {
         title: String,
         text: String,
         reason: String,
+        recordDrop: Boolean,
     ) {
         Diag.onDropped(this)
+        if (!recordDrop) return
         DroppedStore.add(
             this,
             Dropped(
@@ -161,18 +187,25 @@ class NotifyListener : NotificationListenerService() {
 
     /**
      * 尽量还原通知的完整正文：
-     * 聊天类通知优先取 MessagingStyle 的最后一条消息，再合并大文本/正文/子文本/多行文本。
+     * 聊天类通知优先取 MessagingStyle 的最后几条消息，再合并大文本/正文/子文本/多行文本。
+     * 只取最后一条会漏掉“上一条是图片、这一条才是文字”的情况，所以保留最近 3 条。
      */
-    private fun extractText(n: Notification): String {
+    private fun extractText(n: Notification, messaging: NotificationCompat.MessagingStyle?): String {
         val parts = LinkedHashSet<String>()
         fun add(s: CharSequence?) {
             val v = s?.toString()?.trim().orEmpty()
             if (v.isNotBlank() && v != "null") parts.add(v)
         }
-        val messaging = runCatching {
-            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(n)
-        }.getOrNull()
-        messaging?.messages?.lastOrNull()?.text?.let { add(it) }
+        messaging?.messages?.takeLast(3)?.forEach { add(it.text) }
+        // 部分微信/QQ 版本用自定义 Parcelable 存消息，NotificationCompat 解析不到；
+        // 直接读系统 EXTRA_MESSAGES，避免“通知收到了但正文为空”。
+        runCatching {
+            n.extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                ?.takeLast(3)
+                ?.forEach { raw ->
+                    (raw as? Bundle)?.getCharSequence("text")?.let { add(it) }
+                }
+        }
 
         val e = n.extras
         add(e.getCharSequence(Notification.EXTRA_BIG_TEXT))

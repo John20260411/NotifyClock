@@ -38,53 +38,23 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnListen"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="监听此应用"
-                android:textSize="12sp" />
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBlock"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="屏蔽此会话"
-                android:textSize="12sp" />
-        </LinearLayout>
+                style="@style/ItemAction"
+                android:text="屏蔽此会话" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRetry"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="重试识别"
-                android:textSize="12sp" />
+                style="@style/ItemAction"
+                android:text="重试识别" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDismiss"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minWidth="0dp"
-                android:text="忽略"
-                android:textSize="12sp" />
+                style="@style/ItemAction"
+                android:text="忽略" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

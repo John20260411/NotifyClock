@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var reminderList: RecyclerView
     private lateinit var adapter: ReminderAdapter
+    private lateinit var mainScroll: ScrollView
     private lateinit var droppedContainer: LinearLayout
     private lateinit var emptyText: TextView
     private lateinit var emptyDropped: TextView
@@ -72,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         reminderList = findViewById(R.id.reminderList)
+        mainScroll = findViewById(R.id.mainScroll)
         droppedContainer = findViewById(R.id.droppedContainer)
         emptyText = findViewById(R.id.emptyText)
         emptyDropped = findViewById(R.id.emptyDropped)
@@ -118,11 +120,16 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnParse).setOnClickListener {
             val text = input.text.toString()
             if (text.isBlank()) return@setOnClickListener
-            Processor.submit(applicationContext, "手动测试", text) { _, msg ->
+            Processor.submit(applicationContext, "手动测试", text) { r, msg ->
                 runOnUiThread {
                     Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
                     renderLog()
-                    renderReminders()
+                    if (r != null) {
+                        focusReminder(r)
+                        input.text.clear()
+                    } else {
+                        renderReminders()
+                    }
                 }
             }
         }
@@ -209,6 +216,30 @@ class MainActivity : AppCompatActivity() {
             "还没有待处理提醒。收到含时间的通知后会自动出现在这里。"
         }
         adapter.submit(list)
+    }
+
+    /**
+     * 创建成功后把用户带到这条提醒：切回“待处理”，滚动到卡片位置。
+     * 列表按时间升序，新任务可能在屏幕外；不滚动就会让人以为“没有创建”。
+     */
+    private fun focusReminder(r: Reminder) {
+        if (showArchived) {
+            showArchived = false
+            toggleGroup.check(R.id.btnActive)
+        }
+        renderReminders()
+        reminderList.post {
+            val index = adapter.indexOf(r.id)
+            if (index < 0) return@post
+            reminderList.scrollToPosition(index)
+            val vh = reminderList.findViewHolderForAdapterPosition(index)
+            val target = if (vh != null) {
+                reminderList.top + vh.itemView.top - dp(16)
+            } else {
+                reminderList.top
+            }
+            mainScroll.smoothScrollTo(0, target.coerceAtLeast(0))
+        }
     }
 
     /** 左滑归档/恢复：阈值 26%，快速轻扫也能触发；滑动时露出圆角色块和文字。 */
@@ -366,6 +397,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderDropped() {
         droppedContainer.removeAllViews()
+        // 只保留用户明确勾选的 App；未勾选 App 的历史记录一并清掉。
+        DroppedStore.retainPackages(this, Prefs(this).monitoredPackages)
         val list = DroppedStore.all(this)
         emptyDropped.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         for (d in list) {
@@ -379,17 +412,6 @@ class MainActivity : AppCompatActivity() {
             v.findViewById<TextView>(R.id.dropReason).text = "${d.reason} · ${d.count} 次"
             v.findViewById<TextView>(R.id.dropText).text = d.text.ifBlank { "（没有正文）" }
 
-            v.findViewById<Button>(R.id.btnListen).apply {
-                visibility = if (d.pkg.isBlank()) View.GONE else View.VISIBLE
-                setOnClickListener {
-                    val p = Prefs(this@MainActivity)
-                    p.monitoredPackages = p.monitoredPackages + d.pkg
-                    p.monitorAll = false
-                    DroppedStore.remove(this@MainActivity, d)
-                    toast("已加入监听：${d.app}")
-                    renderDropped()
-                }
-            }
             v.findViewById<Button>(R.id.btnBlock).apply {
                 text = if (d.conversation.isNotBlank()) "屏蔽此会话" else "屏蔽此应用"
                 visibility =
@@ -408,15 +430,18 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             v.findViewById<Button>(R.id.btnRetry).setOnClickListener {
-                DroppedStore.remove(this, d)
                 val incoming = Incoming(
                     d.pkg, d.app, d.conversation, d.title, d.text, "", null,
                     System.currentTimeMillis(),
+                    force = true,
                 )
-                Processor.submit(applicationContext, incoming) { _, msg ->
+                Processor.submit(applicationContext, incoming) { r, msg ->
                     runOnUiThread {
                         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-                        renderReminders()
+                        if (r != null) {
+                            DroppedStore.remove(this, d)
+                            focusReminder(r)
+                        }
                         renderDropped()
                     }
                 }
@@ -466,12 +491,19 @@ class MainActivity : AppCompatActivity() {
                     time == null -> etTime.error = "格式：2026-11-01 15:00"
                     offsets == null -> etOffsets.error = "用逗号分隔的分钟数，如 60,10,0"
                     r == null -> {
-                        Reminders.create(this, title, time, "手动添加", "", offsets)
+                        val created = Reminders.create(this, title, time, "手动添加", "", offsets)
                         dialog.dismiss()
+                        if (created != null) {
+                            toast("已创建，并滚动到这条提醒")
+                            focusReminder(created)
+                        } else {
+                            toast("已有相同标题和时间的提醒")
+                        }
                     }
                     else -> {
                         Reminders.update(this, r.copy(title = title, time = time, offsets = offsets))
                         dialog.dismiss()
+                        toast("已保存修改")
                     }
                 }
             }

@@ -34,6 +34,7 @@ import cn.notialarm.R
 import cn.notialarm.Reminders
 import cn.notialarm.alarm.AlarmService
 import cn.notialarm.data.Diag
+import cn.notialarm.data.DroppedStore
 import cn.notialarm.data.Prefs
 import cn.notialarm.parse.LlmParser
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -266,6 +267,7 @@ class SettingsActivity : AppCompatActivity() {
             prefs.llmModel = etModel.text.toString()
             prefs.monitorAll = swMonitorAll.isChecked
             prefs.monitoredPackages = selected.toSet()
+            DroppedStore.retainPackages(this, selected.toSet())
             // 免打扰改了会影响已有提醒的响铃时刻
             Reminders.archiveBlacklisted(this)
             Reminders.rescheduleAll(this)
@@ -412,9 +414,9 @@ class SettingsActivity : AppCompatActivity() {
             val sorted = apps.sortedWith(compareBy({ it.first !in selected }, { it.second }))
             runOnUiThread {
                 status.text = if (prefs.monitorAll) {
-                    "正在监听所有 App（下面只是参考列表）"
+                    "正在监听所有 App（未记录列表仍只显示下面勾选的应用）"
                 } else {
-                    "勾选要监听的 App（共 ${sorted.size} 个）"
+                    "勾选要监听的 App（共 ${sorted.size} 个）；未记录列表只显示这里勾选的应用"
                 }
                 for ((pkg, label) in sorted) {
                     container.addView(CheckBox(this).apply {

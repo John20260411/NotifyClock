@@ -25,11 +25,9 @@ class ReminderAdapter(
 ) : RecyclerView.Adapter<ReminderAdapter.Holder>() {
 
     private val items = mutableListOf<Reminder>()
-    private val pendingEnter = mutableSetOf<Int>()
 
     fun submit(list: List<Reminder>) {
         val old = items.toList()
-        val oldIds = old.map { it.id }.toSet()
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize(): Int = old.size
             override fun getNewListSize(): Int = list.size
@@ -41,11 +39,6 @@ class ReminderAdapter(
         })
         items.clear()
         items.addAll(list)
-        pendingEnter.clear()
-        // 只有“刚新增一条”才播入场动画；切待处理/归档页不重播，避免整页闪。
-        if (list.size == old.size + 1) {
-            list.firstOrNull { it.id !in oldIds }?.let { pendingEnter.add(it.id) }
-        }
         diff.dispatchUpdatesTo(this)
     }
 
@@ -57,6 +50,8 @@ class ReminderAdapter(
     }
 
     fun itemAt(position: Int): Reminder? = items.getOrNull(position)
+
+    fun indexOf(id: Int): Int = items.indexOfFirst { it.id == id }
 
     override fun getItemCount(): Int = items.size
 
@@ -78,26 +73,10 @@ class ReminderAdapter(
         holder.btnOpen.setOnClickListener { onOpen(r) }
         holder.btnConfirm.setOnClickListener { onConfirm(r) }
 
-        if (pendingEnter.remove(r.id)) {
-            animateEnter(holder.itemView, position)
-        } else {
-            holder.itemView.alpha = 1f
-            holder.itemView.translationY = 0f
-        }
-    }
-
-    private fun animateEnter(view: View, position: Int) {
-        val density = view.resources.displayMetrics.density
-        view.animate().cancel()
-        view.alpha = 0f
-        view.translationY = 10f * density
-        view.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setStartDelay((position % 6) * 35L)
-            .setDuration(240L)
-            .setInterpolator(android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f))
-            .start()
+        // 新条目直接显示：入场动画会被随后的滚动/重新绑定取消，留下 alpha=0 的“隐形卡片”，
+        // 用户就会以为“创建了但列表里没有”。这里优先保证可见性。
+        holder.itemView.alpha = 1f
+        holder.itemView.translationY = 0f
     }
 
     class Holder(itemView: View) : RecyclerView.ViewHolder(itemView) {
