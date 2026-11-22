@@ -20,11 +20,13 @@ import java.time.LocalDateTime
 
 object Notifier {
     const val CH_ALARM = "alarm"
+    const val CH_ALARM_QUIET = "alarm_quiet"
     const val CH_CREATED = "created"
     const val CH_MISSED = "missed"
     const val ID_ALARM = 1
     const val ID_LISTENER_TEST = 2
     const val ID_RECORDED = 3
+    const val ID_MISSED_BASE = 500_000
     const val EXTRA_EDIT_ID = "edit_id"
     const val EXTRA_JUMP = "jump"
 
@@ -37,6 +39,14 @@ object Notifier {
                 enableVibration(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setBypassDnd(true)
+            }
+        )
+        // 屏幕已亮、手机已解锁时用低优先级，避免通知横幅遮住正在显示的响铃页
+        nm.createNotificationChannel(
+            NotificationChannel(CH_ALARM_QUIET, "闹钟（界面已显示）", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "响铃页面已经显示时使用，不会再弹横幅"
+                setSound(null, null)
+                enableVibration(false)
             }
         )
         nm.createNotificationChannel(
@@ -102,7 +112,7 @@ object Notifier {
         notify(ctx, ID_LISTENER_TEST, n)
     }
 
-    fun alarm(ctx: Context, r: Reminder?): Notification {
+    fun alarm(ctx: Context, r: Reminder?, fullScreen: Boolean = true): Notification {
         val full = PendingIntent.getActivity(
             ctx, 0,
             Intent(ctx, AlarmActivity::class.java)
@@ -111,17 +121,17 @@ object Notifier {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val body = r?.let { "${whenText(it)}\n来自 ${it.source}\n\n${it.text}" }.orEmpty()
-        val b = NotificationCompat.Builder(ctx, CH_ALARM)
+        val b = NotificationCompat.Builder(ctx, if (fullScreen) CH_ALARM else CH_ALARM_QUIET)
             .setSmallIcon(R.drawable.ic_stat_alarm)
             .setContentTitle(r?.title ?: "提醒")
             .setContentText(r?.let { whenText(it) } ?: "")
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(if (fullScreen) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(full, true)
             .setContentIntent(full)
             .setOngoing(true)
+        if (fullScreen) b.setFullScreenIntent(full, true)
         if (r != null) addButtons(ctx, b, r.id)
         return b.build()
     }
@@ -142,7 +152,8 @@ object Notifier {
             .setContentIntent(open)
             .setAutoCancel(true)
         addButtons(ctx, b, r.id)
-        notify(ctx, ID_ALARM, b.build())
+        // 用独立 id，避免 stopForeground 把这条“未确认”通知一起移除
+        notify(ctx, ID_MISSED_BASE + r.id, b.build())
     }
 
     private fun addButtons(ctx: Context, b: NotificationCompat.Builder, id: Int) {
@@ -156,8 +167,8 @@ object Notifier {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        b.addAction(0, "知道了", stop)
-        b.addAction(0, "确认，不再提醒", confirm)
+        b.addAction(0, "仅关闭本次", stop)
+        b.addAction(0, "彻底关闭提醒", confirm)
         b.addAction(0, "打开原通知", open)
         // 延后放在全屏页里选时长，通知栏只保留最常用的三个动作。
     }

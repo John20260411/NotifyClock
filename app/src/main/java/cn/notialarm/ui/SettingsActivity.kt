@@ -10,6 +10,8 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.OpenableColumns
 import android.view.View
 import android.view.ViewGroup
@@ -25,9 +27,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import cn.notialarm.Fmt
+import cn.notialarm.Notifier
+import cn.notialarm.NotifyListener
 import cn.notialarm.R
 import cn.notialarm.Reminders
 import cn.notialarm.alarm.AlarmService
+import cn.notialarm.data.Diag
 import cn.notialarm.data.Prefs
 import cn.notialarm.parse.LlmParser
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -35,8 +40,11 @@ import java.time.LocalTime
 
 class SettingsActivity : AppCompatActivity() {
 
+    private val handler = Handler(Looper.getMainLooper())
     private lateinit var prefs: Prefs
     private val selected = mutableSetOf<String>()
+    private lateinit var permContainer: LinearLayout
+    private lateinit var tvDiag: TextView
 
     // 铃声和免打扰时间在点“保存”之前先放这里
     private var soundUri = ""
@@ -78,6 +86,12 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
         title = "设置"
         prefs = Prefs(this)
+
+        permContainer = findViewById(R.id.permContainer)
+        tvDiag = findViewById(R.id.tvDiag)
+        findViewById<Button>(R.id.btnTestListener).setOnClickListener { testListener() }
+        Permissions.render(this, permContainer)
+        renderDiag()
 
         val etOffsets = findViewById<EditText>(R.id.etOffsets)
         val swSound = findViewById<MaterialSwitch>(R.id.swSound)
@@ -260,6 +274,46 @@ class SettingsActivity : AppCompatActivity() {
         loadApps()
     }
 
+    override fun onResume() {
+        super.onResume()
+        NotifyListener.onStateChanged = {
+            Permissions.render(this, permContainer)
+            renderDiag()
+        }
+        if (Permissions.listenerGranted(this) && !NotifyListener.connected) NotifyListener.rebind(this)
+        Permissions.render(this, permContainer)
+        renderDiag()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        Permissions.render(this, permContainer)
+    }
+
+    private fun renderDiag() {
+        tvDiag.text = Diag.summary(this, NotifyListener.connected)
+    }
+
+    /** 给自己发一条通知，2 秒内监听服务收到就说明链路通了。 */
+    private fun testListener() {
+        if (!Permissions.listenerGranted(this)) {
+            Toast.makeText(this, "请先开启通知使用权", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val sentAt = System.currentTimeMillis()
+        Notifier.listenerTest(this)
+        handler.postDelayed({
+            if (NotifyListener.lastTestAck >= sentAt) {
+                Toast.makeText(this, "✅ 监听正常：能收到通知", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "❌ 没收到测试通知，正在尝试重连监听服务…", Toast.LENGTH_LONG).show()
+                NotifyListener.rebind(this)
+            }
+            Permissions.render(this, permContainer)
+            renderDiag()
+        }, 2000)
+    }
+
     private fun setSound(uri: String, name: String) {
         soundUri = uri
         soundName = name
@@ -288,6 +342,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        NotifyListener.onStateChanged = null
         stopPreview()
         super.onPause()
     }

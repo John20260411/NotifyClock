@@ -1,5 +1,7 @@
 package cn.notialarm.alarm
 
+import android.app.KeyguardManager
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -12,12 +14,14 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import cn.notialarm.Notifier
 import cn.notialarm.Reminders
 import cn.notialarm.data.Prefs
+import cn.notialarm.data.Reminder
 import cn.notialarm.data.ReminderStore
 import cn.notialarm.ui.AlarmActivity
 
@@ -26,11 +30,13 @@ class AlarmService : Service() {
     private var player: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private val handler = Handler(Looper.getMainLooper())
+    private val uiHandler = Handler(Looper.getMainLooper())
     private var currentId = -1
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Notifier.ensureChannels(this)
         val id = intent?.getIntExtra(AlarmScheduler.EXTRA_ID, -1) ?: -1
         when (intent?.action) {
             ACTION_STOP -> {
@@ -55,7 +61,10 @@ class AlarmService : Service() {
 
         val r = ReminderStore.get(this, id)
         // startForegroundService 之后必须尽快 startForeground，即使提醒已被删除
-        val notification = Notifier.alarm(this, r)
+        // 先发高优先级通知（保证后台也能拉起界面），界面显示后再降级，避免横幅一直挡着
+        val interactive = getSystemService(PowerManager::class.java).isInteractive
+        val locked = getSystemService(KeyguardManager::class.java).isKeyguardLocked
+        val notification = Notifier.alarm(this, r, fullScreen = true)
         if (Build.VERSION.SDK_INT >= 29) {
             startForeground(Notifier.ID_ALARM, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
@@ -73,6 +82,8 @@ class AlarmService : Service() {
         if (prefs.sound) startSound(prefs)
         if (prefs.vibrate) startVibration()
         showPopup(id)
+        // 亮屏且已解锁时，系统会把全屏通知降级成横幅；界面已在下面显示，1.2 秒后换成低优先级通知
+        if (interactive && !locked) uiHandler.postDelayed({ downgradeNotification(r) }, 1200)
 
         val minutes = prefs.ringMinutes.let { if (it <= 0) Prefs.MAX_RING_MINUTES else minOf(it, Prefs.MAX_RING_MINUTES) }
         handler.removeCallbacksAndMessages(null)
@@ -95,6 +106,30 @@ class AlarmService : Service() {
                     .putExtra(AlarmScheduler.EXTRA_ID, id)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
             )
+        }
+    }
+
+    /**
+     * 响铃界面已经盖住屏幕后，把前台通知换成低优先级，系统会撤掉横幅；
+     * 响铃页本身不受影响，通知栏里仍保留“仅关闭本次 / 彻底关闭 / 打开原通知”。
+     */
+    private fun downgradeNotification(r: Reminder?, attempt: Int = 0) {
+        if (r == null || currentId != r.id || ringingId != r.id) return
+        if (ReminderStore.get(this, r.id) == null) return
+        // 界面还没真正显示（系统拦截了后台启动）时保留高优先级通知，避免用户完全看不到
+        if (!AlarmActivity.visible) {
+            if (attempt < 30) uiHandler.postDelayed({ downgradeNotification(r, attempt + 1) }, 500)
+            return
+        }
+        runCatching {
+            stopForeground(STOP_FOREGROUND_DETACH)
+            getSystemService(NotificationManager::class.java).cancel(Notifier.ID_ALARM)
+            val quiet = Notifier.alarm(this, r, fullScreen = false)
+            if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(Notifier.ID_ALARM, quiet, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+            } else {
+                startForeground(Notifier.ID_ALARM, quiet)
+            }
         }
     }
 
@@ -139,7 +174,9 @@ class AlarmService : Service() {
 
     private fun stopAll(closeUi: Boolean) {
         ringingId = -1
+        currentId = -1
         handler.removeCallbacksAndMessages(null)
+        uiHandler.removeCallbacksAndMessages(null)
         stopRinging()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -148,6 +185,7 @@ class AlarmService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        uiHandler.removeCallbacksAndMessages(null)
         stopRinging()
         super.onDestroy()
     }

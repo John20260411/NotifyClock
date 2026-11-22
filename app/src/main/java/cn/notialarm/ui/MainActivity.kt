@@ -1,17 +1,10 @@
 package cn.notialarm.ui
 
-import android.Manifest
-import android.app.NotificationManager
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Typeface
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.PowerManager
-import android.provider.Settings
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -21,7 +14,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationManagerCompat
 import cn.notialarm.Fmt
 import cn.notialarm.Notifier
 import cn.notialarm.NotifyListener
@@ -32,7 +24,6 @@ import cn.notialarm.SourceLauncher
 import cn.notialarm.alarm.AlarmScheduler
 import cn.notialarm.data.ActivityLog
 import cn.notialarm.data.Diag
-import cn.notialarm.data.Dropped
 import cn.notialarm.data.DroppedStore
 import cn.notialarm.data.Incoming
 import cn.notialarm.data.Prefs
@@ -43,16 +34,13 @@ import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
 
-    private class Perm(val name: String, val desc: String, val granted: Boolean, val fix: () -> Unit)
-
-    private val handler = Handler(Looper.getMainLooper())
-    private lateinit var permContainer: LinearLayout
     private lateinit var reminderContainer: LinearLayout
     private lateinit var droppedContainer: LinearLayout
     private lateinit var emptyText: TextView
     private lateinit var emptyDropped: TextView
     private lateinit var logText: TextView
     private lateinit var tvDiag: TextView
+    private lateinit var tvPermWarning: TextView
     private lateinit var btnActive: Button
     private lateinit var btnArchived: Button
 
@@ -64,13 +52,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         Notifier.ensureChannels(this)
 
-        permContainer = findViewById(R.id.permContainer)
         reminderContainer = findViewById(R.id.reminderContainer)
         droppedContainer = findViewById(R.id.droppedContainer)
         emptyText = findViewById(R.id.emptyText)
         emptyDropped = findViewById(R.id.emptyDropped)
         logText = findViewById(R.id.logText)
         tvDiag = findViewById(R.id.tvDiag)
+        tvPermWarning = findViewById(R.id.tvPermWarning)
         btnActive = findViewById(R.id.btnActive)
         btnArchived = findViewById(R.id.btnArchived)
 
@@ -87,8 +75,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         findViewById<Button>(R.id.btnAdd).setOnClickListener { showEdit(null) }
-        findViewById<Button>(R.id.btnTestListener).setOnClickListener { testListener() }
-        findViewById<Button>(R.id.btnSettings).setOnClickListener {
+        tvPermWarning.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         findViewById<Button>(R.id.btnClearDropped).setOnClickListener {
@@ -112,6 +99,19 @@ class MainActivity : AppCompatActivity() {
         if (id > 0) ReminderStore.get(this, id)?.let { showEdit(it) }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_settings) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     override fun onResume() {
         super.onResume()
         Reminders.onChange = {
@@ -119,16 +119,17 @@ class MainActivity : AppCompatActivity() {
             renderLog()
             renderDiag()
             renderDropped()
+            renderPermWarning()
         }
-        // 权限开着但服务没连上：自动重连一次
         NotifyListener.onStateChanged = {
-            renderPermissions()
+            renderPermWarning()
             renderDiag()
         }
-        if (listenerGranted() && !NotifyListener.connected) reconnectListener(manual = false)
+        // 权限开着但服务没连上：自动重连一次
+        if (Permissions.listenerGranted(this) && !NotifyListener.connected) NotifyListener.rebind(this)
         // 顺手把已经过了时间的提醒归档，列表不再被旧项占满
         Reminders.housekeeping(this)
-        renderPermissions()
+        renderPermWarning()
         renderReminders()
         renderLog()
         renderDiag()
@@ -141,101 +142,16 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    private fun perms(): List<Perm> = buildList {
-        val pkgUri = Uri.parse("package:$packageName")
-        if (!listenerGranted()) {
-            add(Perm("通知使用权", "读取微信、QQ 等 App 的通知", false) {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            })
+    /** 主页只提示一行；完整权限清单在右上角齿轮里的设置页。 */
+    private fun renderPermWarning() {
+        val granted = Permissions.listenerGranted(this)
+        val ok = granted && NotifyListener.connected
+        tvPermWarning.visibility = if (ok) View.GONE else View.VISIBLE
+        if (ok) return
+        tvPermWarning.text = if (!granted) {
+            "⚠ 通知使用权未开启，点这里去设置"
         } else {
-            add(Perm("通知使用权", if (NotifyListener.connected) "监听服务运行中" else
-                "已授权，但监听服务没有连上（覆盖安装后常见）。点“去开启”重连；还不行就在通知使用权里把本 App 关掉再打开",
-                NotifyListener.connected) { reconnectListener(manual = true) })
-        }
-        if (Build.VERSION.SDK_INT >= 33) {
-            add(Perm("发送通知", "弹出提醒和闹钟",
-                checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
-            })
-        }
-        if (Build.VERSION.SDK_INT >= 31) {
-            add(Perm("精确闹钟", "让闹钟准时响", AlarmScheduler.canExact(this@MainActivity)) {
-                startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri))
-            })
-        }
-        if (Build.VERSION.SDK_INT >= 34) {
-            add(Perm("全屏弹窗", "锁屏时直接弹出闹钟页面",
-                getSystemService(NotificationManager::class.java).canUseFullScreenIntent()) {
-                startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri))
-            })
-        }
-        add(Perm("显示在其他应用上层（悬浮窗）", "亮屏时弹出确认窗口，没有它只会显示横幅",
-            Settings.canDrawOverlays(this@MainActivity)) {
-            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri))
-        })
-        add(Perm("忽略电池优化", "防止后台被系统杀掉",
-            getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)) {
-            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri))
-        })
-        // 国产系统特有、无法检测的权限：只给入口
-        add(Perm("手机厂商权限（请手动确认）",
-            "小米：后台弹出界面、锁屏显示、自启动；华为：应用启动管理改为手动并全部允许；OPPO/vivo：允许后台弹出、自启动",
-            false) {
-            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri))
-        })
-    }
-
-    private fun listenerGranted() =
-        NotificationManagerCompat.getEnabledListenerPackages(this).contains(packageName)
-
-    private fun reconnectListener(manual: Boolean) {
-        NotifyListener.rebind(this)
-        handler.postDelayed({
-            renderPermissions()
-            if (manual && !NotifyListener.connected) {
-                Toast.makeText(this, "还是没连上：请在通知使用权里把“通知闹钟”关掉再打开", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            }
-        }, 2000)
-    }
-
-    /** 给自己发一条通知，2 秒内监听服务收到就说明链路通了。 */
-    private fun testListener() {
-        if (!listenerGranted()) {
-            Toast.makeText(this, "请先开启通知使用权", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val sentAt = System.currentTimeMillis()
-        Notifier.listenerTest(this)
-        handler.postDelayed({
-            if (NotifyListener.lastTestAck >= sentAt) {
-                Toast.makeText(this, "✅ 监听正常：能收到通知", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "❌ 没收到测试通知，正在尝试重连监听服务…", Toast.LENGTH_LONG).show()
-                reconnectListener(manual = true)
-            }
-            renderPermissions()
-            renderDiag()
-        }, 2000)
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        renderPermissions()
-    }
-
-    private fun renderPermissions() {
-        permContainer.removeAllViews()
-        for (p in perms()) {
-            val row = layoutInflater.inflate(R.layout.item_permission, permContainer, false)
-            row.findViewById<TextView>(R.id.permName).text = (if (p.granted) "✅ " else "⚠️ ") + p.name
-            row.findViewById<TextView>(R.id.permDesc).text = p.desc
-            row.findViewById<Button>(R.id.permFix).apply {
-                visibility = if (p.granted) View.GONE else View.VISIBLE
-                if (p.name.startsWith("手机厂商")) text = "去设置"
-                setOnClickListener { runCatching { p.fix() } }
-            }
-            permContainer.addView(row)
+            "⚠ 监听服务未连接，点这里检查或重连"
         }
     }
 
@@ -253,7 +169,7 @@ class MainActivity : AppCompatActivity() {
         val list = if (showArchived) archived else active
         emptyText.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         emptyText.text = if (showArchived) {
-            "归档是空的。已过期或你点过“确认不再提醒”的提醒会放在这里。"
+            "归档是空的。已过期或你点过“彻底关闭”的提醒会放在这里。"
         } else {
             "还没有待处理提醒。收到含时间的通知后会自动出现在这里。"
         }
@@ -285,7 +201,10 @@ class MainActivity : AppCompatActivity() {
             }
             v.findViewById<Button>(R.id.btnConfirm).apply {
                 visibility = if (r.archived) View.GONE else View.VISIBLE
-                setOnClickListener { Reminders.confirm(this@MainActivity, r.id) }
+                setOnClickListener {
+                    Reminders.confirm(this@MainActivity, r.id)
+                    Toast.makeText(this@MainActivity, "已彻底关闭，这条以后不会再响", Toast.LENGTH_SHORT).show()
+                }
             }
             v.findViewById<Button>(R.id.btnArchive).apply {
                 visibility = if (r.archived) View.GONE else View.VISIBLE
@@ -310,7 +229,8 @@ class MainActivity : AppCompatActivity() {
                 append(Fmt.dateTime(r.time))
                 if (r.timeAssumed) append("（原通知只写了日期，时间按默认估算）")
                 append("\n来自 ").append(r.source)
-                if (r.archived) append("\n已归档")
+                if (r.confirmed) append("\n已彻底关闭（以后不会再提醒）")
+                else if (r.archived) append("\n已归档")
                 append("\n\n").append(r.text.ifBlank { "（没有正文）" })
             }
             textSize = 15f

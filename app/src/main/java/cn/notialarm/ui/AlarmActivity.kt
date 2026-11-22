@@ -26,7 +26,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-/** 到点时的全屏确认页：知道了 / 确认不再提醒 / 打开原通知 / 延后。 */
+/** 到点时的全屏确认页：仅关闭本次 / 彻底关闭 / 打开原通知 / 延后。 */
 class AlarmActivity : AppCompatActivity() {
 
     private val finisher: () -> Unit = { runOnUiThread { finish() } }
@@ -49,7 +49,7 @@ class AlarmActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnConfirm).setOnClickListener { send(AlarmService.ACTION_CONFIRM) }
         findViewById<Button>(R.id.btnOpen).setOnClickListener { openOriginal() }
 
-        // 返回键等同“知道了”：以前会 Toast 拦住用户，横屏时又点不到按钮，等于退不出去。
+        // 返回键等同“仅关闭本次响铃”：以前会 Toast 拦住用户，横屏时又点不到按钮，等于退不出去。
         onBackPressedDispatcher.addCallback(this) { send(AlarmService.ACTION_STOP) }
 
         val chips = findViewById<ChipGroup>(R.id.snoozeChips)
@@ -141,7 +141,7 @@ class AlarmActivity : AppCompatActivity() {
             hint = "分钟数，如 20"
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("延后多少分钟？")
+            .setTitle("延后多少分钟后再次响铃？")
             .setView(input)
             .setPositiveButton("确定") { _, _ ->
                 val min = input.text.toString().toIntOrNull()
@@ -152,16 +152,35 @@ class AlarmActivity : AppCompatActivity() {
             .show()
     }
 
+    override fun onResume() {
+        super.onResume()
+        visible = true
+    }
+
+    override fun onPause() {
+        visible = false
+        super.onPause()
+    }
+
     private fun send(action: String, minutes: Int = 0) {
         startService(
             Intent(this, AlarmService::class.java).setAction(action)
                 .putExtra(AlarmScheduler.EXTRA_ID, id).putExtra(AlarmService.EXTRA_MINUTES, minutes)
         )
         when (action) {
+            AlarmService.ACTION_STOP -> {
+                val stillRinging = ReminderStore.get(this, id)
+                    ?.let { AlarmScheduler.plan(this, it).isNotEmpty() } == true
+                Toast.makeText(
+                    this,
+                    if (stillRinging) "已关闭本次响铃；之后的提前提醒仍会响" else "已关闭本次响铃",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
             AlarmService.ACTION_SNOOZE ->
-                Toast.makeText(this, "将在${Fmt.minutes(minutes)}后再次提醒", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "将在${Fmt.minutes(minutes)}后再次响铃", Toast.LENGTH_SHORT).show()
             AlarmService.ACTION_CONFIRM ->
-                Toast.makeText(this, "已确认，这条提醒不会再响", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "已彻底关闭：这条提醒以后不会再响", Toast.LENGTH_SHORT).show()
         }
         finish()
     }
@@ -169,7 +188,14 @@ class AlarmActivity : AppCompatActivity() {
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     override fun onDestroy() {
+        visible = false
         if (AlarmService.onStopped === finisher) AlarmService.onStopped = null
         super.onDestroy()
+    }
+
+    companion object {
+        /** 响铃页是否真的显示在前台；没显示时不要撤掉高优先级通知。 */
+        @Volatile
+        var visible = false
     }
 }

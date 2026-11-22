@@ -65,7 +65,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minWidth="0dp"
-                android:text="确认不再提醒"
+                android:text="彻底关闭"
                 android:textSize="12sp" />
 
             <Button

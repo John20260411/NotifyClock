@@ -11,6 +11,37 @@
 
         <TextView
             style="@style/SectionTitle"
+            android:text="权限" />
+
+        <TextView
+            style="@style/FieldLabel"
+            android:text="绿色表示已开启。权限不全时，通知可能收不到或闹钟不响。" />
+
+        <LinearLayout
+            android:id="@+id/permContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/btnTestListener"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="测试通知监听是否正常" />
+
+        <TextView
+            android:id="@+id/tvDiag"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:lineSpacingExtra="2dp"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+
+        <TextView
+            style="@style/SectionTitle"
             android:text="闹钟" />
 
         <TextView style="@style/FieldLabel" android:text="默认提前多少分钟响铃（逗号分隔，0 = 准时，最多 9 个）" />

@@ -9,29 +9,22 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- 权限统一收进右上角齿轮里的设置页，主页只在不正常时提示一行 -->
         <TextView
-            style="@style/SectionTitle"
-            android:text="权限" />
-
-        <LinearLayout
-            android:id="@+id/permContainer"
+            android:id="@+id/tvPermWarning"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-        <Button
-            android:id="@+id/btnTestListener"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="测试通知监听是否正常" />
+            android:background="#22FF9800"
+            android:padding="10dp"
+            android:textColor="#FF8A4B00"
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/tvDiag"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:lineSpacingExtra="2dp"
             android:textIsSelectable="true"
             android:textSize="12sp" />
@@ -68,15 +61,6 @@
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:text="手动添加" />
-
-            <Button
-                android:id="@+id/btnSettings"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="设置" />
         </LinearLayout>
 
         <TextView
