@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NotifyClock</string>
+    <string name="app_subtitle">Turn times in notifications into perfectly timed alarms</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_restore">Restore</string>
+    <string name="action_open_source">Open original</string>
+    <string name="action_close_once">Dismiss this ring only</string>
+    <string name="action_close_forever">Silence this reminder permanently</string>
+    <string name="action_confirm_off">Silence permanently</string>
+    <string name="action_go_enable">Enable</string>
+    <string name="action_go_settings">Open settings</string>
+    <string name="action_retry">Retry detection</string>
+    <string name="action_ignore">Ignore</string>
+
+    <string name="section_try">Try it</string>
+    <string name="input_hint">Paste a message, e.g. “Group meeting at 3 pm tomorrow in Zhengxin Building”</string>
+    <string name="btn_parse_create">Create</string>
+    <string name="btn_manual_add">Add manually</string>
+    <string name="section_reminders">Reminders</string>
+    <string name="tab_active">Active</string>
+    <string name="tab_archived">Archived</string>
+    <string name="list_hint_active">Tap for full text · swipe left to archive · long-press to delete</string>
+    <string name="list_hint_archived">Tap for full text · swipe left to restore · long-press to delete</string>
+    <string name="empty_active">No active reminders yet. Notifications with a time will appear here automatically.</string>
+    <string name="empty_archived">Nothing archived yet. Expired or silenced reminders are kept here.</string>
+    <string name="section_dropped">Unrecorded notifications</string>
+    <string name="dropped_hint">These notifications were filtered or had no detectable time. You can retry, listen to the source app, or block the conversation.</string>
+    <string name="dropped_empty">No unrecorded notifications.</string>
+    <string name="clear_dropped">Clear this list</string>
+    <string name="section_recent">Recently processed</string>
+    <string name="recent_empty">Nothing processed yet</string>
+
+    <string name="section_permissions">Permissions</string>
+    <string name="permission_hint">Green means enabled. Missing permissions can cause missed notifications or silent alarms.</string>
+    <string name="btn_test_listener">Test notification access</string>
+    <string name="btn_attempts">View recent notification attempts</string>
+
+    <string name="section_alarm">Alarm</string>
+    <string name="offsets_label">Default lead times in minutes (comma-separated, 0 = on time, up to 9)</string>
+    <string name="switch_sound">Sound</string>
+    <string name="switch_vibrate">Vibrate</string>
+    <string name="ringtone_title">Ringtone</string>
+    <string name="change_ringtone">Change ringtone</string>
+    <string name="preview">Preview</string>
+    <string name="stop_preview">Stop</string>
+    <string name="volume_follow">Volume follows</string>
+    <string name="volume_alarm">Alarm volume</string>
+    <string name="volume_media">Media volume</string>
+    <string name="ring_minutes_label">How long each alarm rings (0 = until dismissed, max 30 minutes)</string>
+    <string name="snooze_label">Snooze options on the alarm screen (minutes, comma-separated; custom values are also available)</string>
+
+    <string name="section_quiet">Quiet hours</string>
+    <string name="switch_quiet">Enable quiet hours</string>
+    <string name="quiet_start_fmt">Start %1$s</string>
+    <string name="quiet_end_fmt">End %1$s</string>
+    <string name="quiet_hint">Early reminders that fall inside quiet hours are moved: if the event has not started when quiet hours end, the reminder rings at the end; if the event itself is inside quiet hours (e.g. leaving at 6 am), it rings before quiet hours begin.</string>
+    <string name="switch_quiet_keep">The on-time alarm still rings when the event is inside quiet hours</string>
+
+    <string name="section_parse">Detection mode</string>
+    <string name="mode_hybrid">Rules first, ask the AI only when needed (recommended)</string>
+    <string name="mode_llm">AI first (more accurate, more expensive)</string>
+    <string name="mode_rule">Local rules only (offline, free)</string>
+    <string name="llm_hint">OpenAI-compatible endpoint (DeepSeek, Qwen, Kimi, Zhipu all work). Only messages that look like they contain a time are sent.</string>
+    <string name="hint_api_key">API key (sk-…)</string>
+    <string name="hint_model">Model name, e.g. deepseek-chat</string>
+    <string name="btn_test_llm">Test AI</string>
+
+    <string name="section_blacklist">Blocklist</string>
+    <string name="blacklist_hint">Blocked notifications never appear in the reminder list. Block by conversation name, keyword (if the text contains it), or app package.</string>
+    <string name="black_type_conversation">Conversation</string>
+    <string name="black_type_keyword">Keyword</string>
+    <string name="black_type_package">App package</string>
+    <string name="hint_black_value">Conversation / keyword / app package</string>
+    <string name="btn_add_black">Add to blocklist</string>
+    <string name="blacklist_empty">No blocklist rules yet</string>
+    <string name="blacklist_summary">%1$d rule(s); matching notifications are skipped and never create reminders</string>
+    <string name="blacklist_row">%1$s: %2$s</string>
+    <string name="remove">Remove</string>
+
+    <string name="section_apps">Monitored apps</string>
+    <string name="switch_monitor_all">Monitor all apps (ignore the list below)</string>
+    <string name="apps_loading">Loading installed apps…</string>
+    <string name="apps_count">Choose apps to monitor (%1$d total). The unrecorded list only shows checked apps.</string>
+    <string name="apps_monitor_all">Monitoring all apps. The unrecorded list still only shows checked apps.</string>
+
+    <string name="section_language">Language</string>
+    <string name="language_system">Follow system language</string>
+    <string name="language_zh">简体中文</string>
+    <string name="language_en">English</string>
+    <string name="language_hint">The app name and interface change together. In English the app is called NotifyClock.</string>
+
+    <string name="section_event">Event</string>
+    <string name="section_time">Time (yyyy-MM-dd HH:mm)</string>
+    <string name="section_offsets">Lead times in minutes (comma-separated, 0 = on time)</string>
+    <string name="snooze_label_short">Snooze</string>
+    <string name="block_conversation">Block this conversation</string>
+
+    <string name="dialog_edit_title">Edit reminder</string>
+    <string name="dialog_new_title">New reminder</string>
+    <string name="dialog_delete_title">Delete this reminder?</string>
+    <string name="dialog_delete_message">The reminder and all of its alarms will be removed.</string>
+    <string name="dialog_custom_snooze">Snooze for how many minutes?</string>
+    <string name="hint_custom_snooze">Minutes, e.g. 20</string>
+    <string name="invalid_snooze">Enter a number between 1 and 1440</string>
+    <string name="old_text_label">Original (%1$s):\n%2$s</string>
+
+    <string name="toast_restored">Moved back to active</string>
+    <string name="toast_deleted">Deleted</string>
+    <string name="toast_closed_forever">Silenced permanently. This reminder will not ring again.</string>
+    <string name="toast_archived">Archived. Restore it from the Archived tab.</string>
+    <string name="toast_created_scrolled">Created and scrolled to the reminder</string>
+    <string name="toast_duplicate">A reminder with the same title and time already exists</string>
+    <string name="toast_edit_saved">Changes saved</string>
+    <string name="toast_cleared_dropped">Unrecorded list cleared</string>
+    <string name="toast_manual_source">Manual test</string>
+    <string name="toast_listen_added">Now monitoring this app</string>
+    <string name="toast_block_added">Blocked</string>
+    <string name="toast_retry_failed">Still no time detected; kept in the list</string>
+    <string name="toast_jump_failed">The original notification is gone, or the source app was uninstalled</string>
+    <string name="toast_saved_auto">Saved automatically at %1$s</string>
+    <string name="autosave_hint">Changes are saved automatically</string>
+
+    <string name="perm_listener">Notification access</string>
+    <string name="perm_listener_running">Listener service is running</string>
+    <string name="perm_listener_disconnected">Access was granted but the listener is not connected. Tap “Enable” to reconnect; if that fails, turn NotifyClock off and on again in Notification access.</string>
+    <string name="perm_post">Send notifications</string>
+    <string name="perm_post_desc">Show reminders and alarms</string>
+    <string name="perm_exact">Exact alarms</string>
+    <string name="perm_exact_desc">Ring exactly on time</string>
+    <string name="perm_fullscreen">Full-screen intents</string>
+    <string name="perm_fullscreen_desc">Show the alarm screen over the lock screen</string>
+    <string name="perm_overlay">Display over other apps</string>
+    <string name="perm_overlay_desc">Show the confirmation window while the screen is on; without it only a banner appears</string>
+    <string name="perm_battery">Ignore battery optimization</string>
+    <string name="perm_battery_desc">Keep the app alive in the background</string>
+    <string name="perm_vendor">Manufacturer permissions (confirm manually)</string>
+    <string name="perm_vendor_desc">Xiaomi: allow background pop-ups, lock-screen display, and autostart. Huawei: set App launch to manual and allow everything. OPPO/vivo: allow background pop-ups and autostart.</string>
+    <string name="perm_vendor_button">Settings</string>
+
+    <string name="notif_alarm_channel">Alarm pop-up</string>
+    <string name="notif_alarm_channel_desc">Full-screen or banner alarm at the scheduled time (sound and vibration are controlled by the app)</string>
+    <string name="notif_alarm_quiet_channel">Alarm (screen already visible)</string>
+    <string name="notif_alarm_quiet_desc">Used while the alarm screen is visible, so no banner appears</string>
+    <string name="notif_created_channel">Reminder summary</string>
+    <string name="notif_created_channel_desc">All active reminders are combined into one notification</string>
+    <string name="notif_missed_channel">Unconfirmed reminders</string>
+    <string name="notif_summary_title">NotifyClock: %1$d active reminder(s)</string>
+    <string name="notif_summary_more">and %1$d more…</string>
+    <string name="notif_undo_last">Undo last</string>
+    <string name="notif_test_title">Notification access test</string>
+    <string name="notif_test_text">This disappears automatically</string>
+    <string name="notif_alarm_title">Reminder</string>
+    <string name="notif_missed_title">⏰ Unconfirmed: %1$s</string>
+    <string name="notif_content">%1$s\nFrom %2$s\n\n%3$s</string>
+    <string name="notif_action_close_once">Dismiss once</string>
+    <string name="notif_action_close_forever">Silence permanently</string>
+
+    <string name="time_today">Today</string>
+    <string name="time_tomorrow">Tomorrow</string>
+    <string name="time_day_after">In 2 days</string>
+    <string name="time_weekday">%1$s %2$s %3$s</string>
+    <string name="time_minutes">%1$d min</string>
+    <string name="time_hours">%1$d hr</string>
+    <string name="time_hours_minutes">%1$d hr %2$d min</string>
+    <string name="time_days">%1$d days</string>
+    <string name="time_on_time">On time</string>
+    <string name="time_no_future">No future ring time (all times have passed)</string>
+    <string name="time_ring_at">Rings at %1$s</string>
+    <string name="time_now">Starting now</string>
+    <string name="time_left">in %1$s</string>
+    <string name="time_started">started %1$s ago</string>
+
+    <string name="alarm_no_body">(This reminder has no body)</string>
+    <string name="alarm_assumed">\nOnly a date was given; a default time is assumed</string>
+    <string name="alarm_source">From %1$s</string>
+    <string name="alarm_jump_failed">The original notification is gone. Open the source app from your app list instead.</string>
+    <string name="alarm_closed_once">Dismissed this ring; later lead-time alarms will still ring</string>
+    <string name="alarm_snoozed">Will ring again in %1$s</string>
+
+    <string name="detail_no_body">(No body)</string>
+    <string name="detail_assumed">(Only a date was given; a default time is assumed)</string>
+    <string name="detail_source">From </string>
+    <string name="detail_closed_suffix"> · silenced permanently</string>
+    <string name="detail_archived_suffix"> · archived</string>
+    <string name="dropped_count">%1$s · %2$d time(s)</string>
+    <string name="dropped_block">Block this conversation</string>
+    <string name="dropped_ignore">Never record this again</string>
+    <string name="dropped_listen">Monitor this app</string>
+    <string name="dropped_retry">Retry detection</string>
+
+    <string name="now_ringtone">Current ringtone: %1$s</string>
+    <string name="default_alarm_sound">System default alarm sound</string>
+    <string name="pick_alarm_sound">Choose alarm sound</string>
+    <string name="ringtone_system">System ringtone</string>
+    <string name="ringtone_local">Local music</string>
+    <string name="llm_need_config">Fill in the endpoint, API key, and model first</string>
+    <string name="llm_requesting">Requesting…</string>
+    <string name="llm_not_event">The endpoint works, but the model says this is not an event</string>
+    <string name="llm_ok">Success: %1$s %2$s</string>
+    <string name="llm_failed">Failed: %1$s</string>
+    <string name="error_offsets">Comma-separated minutes, e.g. 60,10,0 (max %1$d)</string>
+    <string name="error_ring">0–%1$d minutes; 0 = ring until dismissed</string>
+    <string name="error_snooze">Comma-separated minutes, e.g. 5,10,30,60</string>
+    <string name="toast_black_added">Added</string>
+    <string name="toast_black_added_archived">Added; archived %1$d matching reminder(s)</string>
+    <string name="toast_listener_need">Enable notification access first</string>
+    <string name="toast_listener_ok">✅ Notification access works</string>
+    <string name="toast_listener_fail">❌ Test notification not received. Reconnecting the listener…</string>
+    <string name="toast_copied">Copied</string>
+    <string name="attempts_title">Recent notification attempts</string>
+    <string name="diagnostic_clip">NotiAlarm diagnostics</string>
+    <string name="toast_play_failed">Cannot play: %1$s</string>
+    <string name="black_kind_conversation">Conversation</string>
+    <string name="black_kind_keyword">Keyword</string>
+    <string name="black_kind_pkg">App</string>
+    <string name="toast_blocked">Blocked</string>
+    <string name="toast_retry_kept">Still no time detected; kept in the list</string>
+    <string name="toast_attempts_empty">No notification attempts yet</string>
+
+    <string name="copy">Copy</string>
+    <string name="block_app">Block this app</string>
+    <string name="toast_never_record">This conversation will not be recorded again</string>
+    <string name="perm_warning_access">⚠ Notification access is off. Tap to open settings.</string>
+    <string name="perm_warning_disconnected">⚠ Listener is not connected. Tap to check or reconnect.</string>
+    <string name="hint_time_format">Format: 2026-11-01 15:00</string>
+    <string name="error_time">Format: 2026-11-01 15:00</string>
+    <string name="error_offsets_short">Comma-separated minutes, e.g. 60,10,0</string>
+    <string name="default_reminder_title">Reminder</string>
+    <string name="manual_source">Added manually</string>
+    <string name="source_fmt">From %1$s</string>
+    <string name="toast_created">Created and scrolled to the reminder</string>
+    <string name="dropped_reason_no_body">Notification has no body (message details may be hidden)</string>
+    <string name="dropped_reason_summary">No detectable time in this group summary</string>
+    <string name="dropped_reason_ongoing">No detectable time in this ongoing notification</string>
+    <string name="dropped_reason_no_time">No time detected</string>
+    <string name="dropped_reason_not_selected">This app is not monitored</string>
+
+    <string name="date_md_pattern">MMM d</string>
+    <string name="date_md_time_pattern">MMM d HH:mm</string>
+    <string name="offset_ahead">%1$s early</string>
+    <string name="list_separator">,&#160;</string>
+    <string-array name="weekdays">
+        <item>Mon</item><item>Tue</item><item>Wed</item><item>Thu</item><item>Fri</item><item>Sat</item><item>Sun</item>
+    </string-array>
+    <string name="time_remaining">%1$s left</string>
+    <string name="snooze_custom">Custom…</string>
+    <string name="alarm_closed_once_only">Ringing stopped for this time</string>
+    <string name="alarm_confirmed">Reminder turned off. It will not ring again.</string>
+    <string name="action_ok">OK</string>
+    <string name="perm_listener_desc">Read notifications from WeChat, QQ and other apps</string>
+    <string name="time_day">1 day</string>
+    <string name="log_jump_ok">Jumped to original notification · %1$s</string>
+    <string name="log_jump_app">Original gone; opened %1$s</string>
+    <string name="log_jump_failed">Could not jump: original notification is gone or the app is uninstalled</string>
+    <string name="diag_service_connected">Listener: connected</string>
+    <string name="diag_service_disconnected">Listener: not connected (tap Test notification access above or reconnect)</string>
+    <string name="diag_connected_at"> (last connected %1$s)</string>
+    <string name="diag_today">Today: received %1$d · parsed %2$d · created %3$d · unrecorded %4$d</string>
+    <string name="diag_last">Latest: %1$s %2$s</string>
+    <string name="diag_unknown_app">Unknown app</string>
+    <string name="diag_restart_hint">If the phone just rebooted or the app was reinstalled, turn notification access off and on again.</string>
+    <string name="proc_no_body">Notification has no body</string>
+    <string name="proc_dup_90">Duplicate notification within 90 seconds; ignored</string>
+    <string name="proc_dup_90_toast">Duplicate notification; ignored</string>
+    <string name="proc_unrecognized">%1$s [%2$s] No time detected: %3$s%4$s</string>
+    <string name="proc_llm_error"> (LLM error: %1$s)</string>
+    <string name="proc_no_time">No time detected%1$s</string>
+    <string name="proc_seen">%1$s [%2$s] Same reminder within 7 days; ignored</string>
+    <string name="proc_same">A reminder like this already exists</string>
+    <string name="proc_save_failed">%1$s [%2$s] Could not save</string>
+    <string name="proc_save_failed_toast">Could not save the reminder</string>
+    <string name="proc_schedule_failed">Saved, but scheduling failed: %1$s</string>
+    <string name="proc_no_future">Created, but there is no future alarm time (it may have passed)</string>
+    <string name="proc_created">Created: %1$s %2$s</string>
+    <string name="proc_error">%1$s [%2$s] Processing error: %3$s</string>
+    <string name="proc_error_toast">Processing failed: %1$s</string>
+    <string name="app_name_zh">通知闹钟</string>
+    <string name="app_name_en">NotifyClock</string>
+</resources>

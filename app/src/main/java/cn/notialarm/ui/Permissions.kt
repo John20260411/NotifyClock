@@ -31,15 +31,15 @@ object Permissions {
     fun items(activity: Activity): List<Item> = buildList {
         val pkgUri = Uri.parse("package:${activity.packageName}")
         if (!listenerGranted(activity)) {
-            add(Item("通知使用权", "读取微信、QQ 等 App 的通知", false) {
+            add(Item(activity.getString(R.string.perm_listener), activity.getString(R.string.perm_listener_desc), false) {
                 activity.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             })
         } else {
             add(
                 Item(
-                    "通知使用权",
-                    if (NotifyListener.connected) "监听服务运行中"
-                    else "已授权，但监听服务没有连上。点“去开启”重连；还不行就在通知使用权里把本 App 关掉再打开",
+                    activity.getString(R.string.perm_listener),
+                    if (NotifyListener.connected) activity.getString(R.string.perm_listener_running)
+                    else activity.getString(R.string.perm_listener_disconnected),
                     NotifyListener.connected,
                 ) { NotifyListener.rebind(activity) }
             )
@@ -47,41 +47,41 @@ object Permissions {
         if (Build.VERSION.SDK_INT >= 33) {
             add(
                 Item(
-                    "发送通知", "弹出提醒和闹钟",
+                    activity.getString(R.string.perm_post), activity.getString(R.string.perm_post_desc),
                     activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED,
                 ) { activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1) }
             )
         }
         if (Build.VERSION.SDK_INT >= 31) {
-            add(Item("精确闹钟", "让闹钟准时响", AlarmScheduler.canExact(activity)) {
+            add(Item(activity.getString(R.string.perm_exact), activity.getString(R.string.perm_exact_desc), AlarmScheduler.canExact(activity)) {
                 activity.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri))
             })
         }
         if (Build.VERSION.SDK_INT >= 34) {
             add(
                 Item(
-                    "全屏弹窗", "锁屏时直接弹出闹钟页面",
+                    activity.getString(R.string.perm_fullscreen), activity.getString(R.string.perm_fullscreen_desc),
                     activity.getSystemService(NotificationManager::class.java).canUseFullScreenIntent(),
                 ) { activity.startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri)) }
             )
         }
         add(
             Item(
-                "显示在其他应用上层（悬浮窗）", "亮屏时弹出确认窗口，没有它只会显示横幅",
+                activity.getString(R.string.perm_overlay), activity.getString(R.string.perm_overlay_desc),
                 Settings.canDrawOverlays(activity),
             ) { activity.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri)) }
         )
         add(
             Item(
-                "忽略电池优化", "防止后台被系统杀掉",
+                activity.getString(R.string.perm_battery), activity.getString(R.string.perm_battery_desc),
                 activity.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(activity.packageName),
             ) { activity.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri)) }
         )
         // 国产系统特有、无法检测的权限：只给入口
         add(
             Item(
-                "手机厂商权限（请手动确认）",
-                "小米：后台弹出界面、锁屏显示、自启动；华为：应用启动管理改为手动并全部允许；OPPO/vivo：允许后台弹出、自启动",
+                activity.getString(R.string.perm_vendor),
+                activity.getString(R.string.perm_vendor_desc),
                 false,
             ) { activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)) }
         )
@@ -95,7 +95,7 @@ object Permissions {
             row.findViewById<TextView>(R.id.permDesc).text = p.desc
             row.findViewById<Button>(R.id.permFix).apply {
                 visibility = if (p.granted) View.GONE else View.VISIBLE
-                if (p.name.startsWith("手机厂商")) text = "去设置"
+                if (p.name == activity.getString(R.string.perm_vendor)) text = activity.getString(R.string.perm_vendor_button)
                 setOnClickListener { runCatching { p.fix() } }
             }
             container.addView(row)

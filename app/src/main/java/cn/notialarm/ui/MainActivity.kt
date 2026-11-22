@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity() {
             onEdit = {
                 if (it.archived) {
                     Reminders.restore(this, it.id)
-                    toast("已恢复到待处理")
+                    toast(getString(R.string.toast_restored))
                 } else {
                     showEdit(it)
                 }
@@ -101,10 +101,10 @@ class MainActivity : AppCompatActivity() {
             onConfirm = {
                 if (it.archived) {
                     Reminders.delete(this, it.id)
-                    toast("已删除")
+                    toast(getString(R.string.toast_deleted))
                 } else {
                     Reminders.confirm(this, it.id)
-                    toast("已彻底关闭，这条以后不会再响")
+                    toast(getString(R.string.toast_closed_forever))
                 }
             }
         )
@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnParse).setOnClickListener {
             val text = input.text.toString()
             if (text.isBlank()) return@setOnClickListener
-            Processor.submit(applicationContext, "手动测试", text) { r, msg ->
+            Processor.submit(applicationContext, getString(R.string.manual_source), text) { r, msg ->
                 runOnUiThread {
                     Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
                     renderLog()
@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnClearDropped).setOnClickListener {
             DroppedStore.clear(this)
             renderDropped()
-            toast("已清空未记录列表")
+            toast(getString(R.string.toast_cleared_dropped))
         }
         toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
@@ -193,29 +193,29 @@ class MainActivity : AppCompatActivity() {
         tvPermWarning.visibility = if (ok) View.GONE else View.VISIBLE
         if (ok) return
         tvPermWarning.text = if (!granted) {
-            "⚠ 通知使用权未开启，点这里去设置"
+            getString(R.string.perm_warning_access)
         } else {
-            "⚠ 监听服务未连接，点这里检查或重连"
+            getString(R.string.perm_warning_disconnected)
         }
     }
 
     private fun renderReminders() {
         val active = ReminderStore.active(this)
         val archived = ReminderStore.archived(this)
-        btnActive.text = "待处理 ${active.size}"
-        btnArchived.text = "归档 ${archived.size}"
+        btnActive.text = getString(R.string.tab_active) + " " + active.size
+        btnArchived.text = getString(R.string.tab_archived) + " " + archived.size
 
         val list = if (showArchived) archived else active
         tvListHint.text = if (showArchived) {
-            "点按查看全文 · 左滑恢复 · 长按删除"
+            getString(R.string.list_hint_archived)
         } else {
-            "点按查看全文 · 左滑归档 · 长按删除"
+            getString(R.string.list_hint_active)
         }
         emptyText.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
         emptyText.text = if (showArchived) {
-            "归档是空的。已过期或你点过“彻底关闭”的提醒会放在这里。"
+            getString(R.string.empty_archived)
         } else {
-            "还没有待处理提醒。收到含时间的通知后会自动出现在这里。"
+            getString(R.string.empty_active)
         }
         adapter.submit(list)
         resizeReminderList()
@@ -282,10 +282,10 @@ class MainActivity : AppCompatActivity() {
                 val r = adapter.itemAt(viewHolder.bindingAdapterPosition) ?: return
                 if (r.archived) {
                     Reminders.restore(this@MainActivity, r.id)
-                    toast("已恢复到待处理")
+                    toast(getString(R.string.toast_restored))
                 } else {
                     Reminders.archive(this@MainActivity, r.id)
-                    toast("已归档，可在“归档”里恢复")
+                    toast(getString(R.string.toast_archived))
                 }
                 renderReminders()
             }
@@ -315,7 +315,7 @@ class MainActivity : AppCompatActivity() {
                     c.save()
                     c.clipRect(rect)
                     c.drawRoundRect(rect, radius, radius, paint)
-                    val label = if (archived) "恢复" else "归档"
+                    val label = getString(if (archived) R.string.action_restore else R.string.tab_archived)
                     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                         color = Color.WHITE
                         textSize = dp(14).toFloat()
@@ -341,13 +341,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun confirmDelete(r: Reminder) {
         MaterialAlertDialogBuilder(this)
-            .setTitle("删除这条提醒？")
+            .setTitle(R.string.dialog_delete_title)
             .setMessage(r.title)
-            .setPositiveButton("删除") { _, _ ->
+            .setPositiveButton(R.string.action_delete) { _, _ ->
                 Reminders.delete(this, r.id)
-                toast("已删除")
+                toast(getString(R.string.toast_deleted))
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -355,7 +355,7 @@ class MainActivity : AppCompatActivity() {
     private fun showDetail(r: Reminder) {
         val v = layoutInflater.inflate(R.layout.dialog_detail, null)
         val dm = resources.displayMetrics
-        val body = r.text.ifBlank { "（没有正文）" }
+        val body = r.text.ifBlank { getString(R.string.detail_no_body) }
         val lines = body.length / 18 + 1
         val bodyHeight = min(dp(320), max(dp(64), dp(24 * min(lines, 12) + 16)))
         v.findViewById<ScrollView>(R.id.dlgBodyScroll).layoutParams =
@@ -365,14 +365,14 @@ class MainActivity : AppCompatActivity() {
         v.findViewById<TextView>(R.id.dlgTitle).text = r.title
         v.findViewById<TextView>(R.id.dlgWhen).text = buildString {
             append(Fmt.dateTime(r.time))
-            if (r.timeAssumed) append("（原通知只写了日期，时间按默认估算）")
+            if (r.timeAssumed) append(getString(R.string.detail_assumed))
         }
         v.findViewById<TextView>(R.id.dlgSource).text = buildString {
-            append("来自 ").append(r.source)
-            if (r.confirmed) append(" · 已彻底关闭")
-            else if (r.archived) append(" · 已归档")
+            append(getString(R.string.source_fmt, r.source))
+            if (r.confirmed) append(getString(R.string.detail_closed_suffix))
+            else if (r.archived) append(getString(R.string.detail_archived_suffix))
         }
-        v.findViewById<TextView>(R.id.dlgBody).text = r.text.ifBlank { "（没有正文）" }
+        v.findViewById<TextView>(R.id.dlgBody).text = r.text.ifBlank { getString(R.string.detail_no_body) }
 
         val b1 = v.findViewById<MaterialButton>(R.id.dlgBtn1)
         val b2 = v.findViewById<MaterialButton>(R.id.dlgBtn2)
@@ -380,21 +380,21 @@ class MainActivity : AppCompatActivity() {
         val dialog = MaterialAlertDialogBuilder(this).setView(v).create()
 
         if (r.archived) {
-            b1.text = "恢复"
-            b3.text = "删除"
+            b1.text = getString(R.string.action_restore)
+            b3.text = getString(R.string.action_delete)
             b1.setOnClickListener {
                 Reminders.restore(this, r.id)
                 dialog.dismiss()
-                toast("已恢复到待处理")
+                toast(getString(R.string.toast_restored))
             }
             b3.setOnClickListener {
                 Reminders.delete(this, r.id)
                 dialog.dismiss()
-                toast("已删除")
+                toast(getString(R.string.toast_deleted))
             }
         } else {
-            b1.text = "修改"
-            b3.text = "彻底关闭"
+            b1.text = getString(R.string.action_edit)
+            b3.text = getString(R.string.action_confirm_off)
             b1.setOnClickListener {
                 dialog.dismiss()
                 showEdit(r)
@@ -402,10 +402,10 @@ class MainActivity : AppCompatActivity() {
             b3.setOnClickListener {
                 Reminders.confirm(this, r.id)
                 dialog.dismiss()
-                toast("已彻底关闭，这条以后不会再响")
+                toast(getString(R.string.toast_closed_forever))
             }
         }
-        b2.text = "打开原通知"
+        b2.text = getString(R.string.action_open_source)
         b2.setOnClickListener { openSource(r) }
 
         dialog.show()
@@ -414,7 +414,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSource(r: Reminder) {
         if (!SourceLauncher.open(this, r)) {
-            Toast.makeText(this, "原通知已经消失，或来源 App 已卸载", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.toast_jump_failed, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -432,11 +432,11 @@ class MainActivity : AppCompatActivity() {
                     append(" · ").append(d.conversation)
                 }
             }
-            v.findViewById<TextView>(R.id.dropReason).text = "${d.reason} · ${d.count} 次"
-            v.findViewById<TextView>(R.id.dropText).text = d.text.ifBlank { "（没有正文）" }
+            v.findViewById<TextView>(R.id.dropReason).text = getString(R.string.dropped_count, localizedReason(d.reason), d.count)
+            v.findViewById<TextView>(R.id.dropText).text = d.text.ifBlank { getString(R.string.detail_no_body) }
 
             v.findViewById<Button>(R.id.btnBlock).apply {
-                text = if (d.conversation.isNotBlank()) "屏蔽此会话" else "屏蔽此应用"
+                text = getString(if (d.conversation.isNotBlank()) R.string.block_conversation else R.string.block_app)
                 visibility =
                     if (d.conversation.isNotBlank() || d.pkg.isNotBlank()) View.VISIBLE else View.GONE
                 setOnClickListener {
@@ -448,7 +448,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     Reminders.archiveBlacklisted(this@MainActivity)
                     DroppedStore.remove(this@MainActivity, d)
-                    toast("以后不再记录")
+                    toast(getString(R.string.toast_never_record))
                     renderDropped()
                 }
             }
@@ -479,7 +479,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderLog() {
         val lines = ActivityLog.lines(this)
-        logText.text = if (lines.isEmpty()) "还没有处理过通知" else lines.joinToString("\n")
+        logText.text = if (lines.isEmpty()) getString(R.string.recent_empty) else lines.joinToString("\n")
     }
 
     private fun showEdit(r: Reminder?) {
@@ -492,46 +492,55 @@ class MainActivity : AppCompatActivity() {
         etTime.setText((r?.time ?: LocalDateTime.now().plusHours(1).withMinute(0)).format(Fmt.INPUT))
         etOffsets.setText((r?.offsets ?: Prefs(this).defaultOffsets).joinToString(","))
         if (r != null && r.text.isNotBlank()) {
-            tvSource.text = "原文（${r.source}）：\n${r.text}"
+            tvSource.text = getString(R.string.old_text_label, r.source, r.text)
             tvSource.visibility = View.VISIBLE
             tvSource.setTypeface(null, Typeface.ITALIC)
         }
 
         val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(if (r == null) "新建提醒" else "修改提醒")
+            .setTitle(if (r == null) R.string.dialog_new_title else R.string.dialog_edit_title)
             .setView(v)
-            .setPositiveButton("保存", null)
-            .setNegativeButton("取消", null)
+            .setPositiveButton(R.string.action_save, null)
+            .setNegativeButton(R.string.action_cancel, null)
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val title = etTitle.text.toString().trim().ifBlank { "提醒" }
+                val title = etTitle.text.toString().trim().ifBlank { getString(R.string.default_reminder_title) }
                 val time = runCatching {
                     LocalDateTime.parse(etTime.text.toString().trim(), Fmt.INPUT)
                 }.getOrNull()
                 val offsets = Prefs.parseOffsets(etOffsets.text.toString())
                 when {
-                    time == null -> etTime.error = "格式：2026-11-01 15:00"
-                    offsets == null -> etOffsets.error = "用逗号分隔的分钟数，如 60,10,0"
+                    time == null -> etTime.error = getString(R.string.error_time)
+                    offsets == null -> etOffsets.error = getString(R.string.error_offsets_short)
                     r == null -> {
-                        val created = Reminders.create(this, title, time, "手动添加", "", offsets)
+                        val created = Reminders.create(this, title, time, getString(R.string.manual_source), "", offsets)
                         dialog.dismiss()
                         if (created != null) {
-                            toast("已创建，并滚动到这条提醒")
+                            toast(getString(R.string.toast_created))
                             focusReminder(created)
                         } else {
-                            toast("已有相同标题和时间的提醒")
+                            toast(getString(R.string.toast_duplicate))
                         }
                     }
                     else -> {
                         Reminders.update(this, r.copy(title = title, time = time, offsets = offsets))
                         dialog.dismiss()
-                        toast("已保存修改")
+                        toast(getString(R.string.toast_edit_saved))
                     }
                 }
             }
         }
         dialog.show()
+    }
+
+    /** 把历史 Dropped 记录里的中文原因映射为当前界面语言。 */
+    private fun localizedReason(reason: String): String = when {
+        reason.startsWith("通知没有正文") -> getString(R.string.dropped_reason_no_body)
+        reason.startsWith("群聊汇总") -> getString(R.string.dropped_reason_summary)
+        reason.startsWith("常驻通知") -> getString(R.string.dropped_reason_ongoing)
+        reason.startsWith("这个 App 不在监听列表") -> getString(R.string.dropped_reason_not_selected)
+        else -> getString(R.string.dropped_reason_no_time)
     }
 
     private fun toast(msg: String) {

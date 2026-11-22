@@ -27,7 +27,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:letterSpacing="0.01"
-                android:text="通知闹钟"
+                android:text="@string/app_name"
                 android:textColor="@color/app_text"
                 android:textSize="27sp"
                 android:textStyle="bold" />
@@ -36,7 +36,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="把通知里的时间，变成准时响的闹钟"
+                android:text="@string/app_subtitle"
                 android:textColor="@color/app_text_muted"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -46,7 +46,7 @@
             android:layout_width="46dp"
             android:layout_height="46dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="设置"
+            android:contentDescription="@string/action_settings"
             android:padding="10dp"
             android:src="@drawable/ic_settings"
             app:tint="@color/brand_primary" />
@@ -81,7 +81,7 @@
 
             <TextView
                 style="@style/SectionLabel"
-                android:text="试一试" />
+                android:text="@string/section_try" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -104,7 +104,7 @@
                         android:layout_height="wrap_content"
                         android:background="@null"
                         android:gravity="top"
-                        android:hint="粘贴一条消息，例如：明天下午3点在正心楼开组会"
+                        android:hint="@string/input_hint"
                         android:inputType="textMultiLine"
                         android:minLines="2"
                         android:padding="0dp"
@@ -122,7 +122,7 @@
                             android:layout_width="0dp"
                             android:layout_height="48dp"
                             android:layout_weight="1"
-                            android:text="识别并创建"
+                            android:text="@string/btn_parse_create"
                             android:textSize="14sp"
                             android:textAllCaps="false"
                             app:cornerRadius="16dp" />
@@ -134,7 +134,7 @@
                             android:layout_height="48dp"
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
-                            android:text="手动添加"
+                            android:text="@string/btn_manual_add"
                             android:textSize="14sp"
                             android:textAllCaps="false"
                             app:cornerRadius="16dp" />
@@ -144,7 +144,7 @@
 
             <TextView
                 style="@style/SectionLabel"
-                android:text="提醒" />
+                android:text="@string/section_reminders" />
 
             <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/toggleGroup"
@@ -161,7 +161,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:minWidth="0dp"
-                    android:text="待处理 0"
+                    android:text="@string/tab_active"
                     android:textAllCaps="false"
                     android:textSize="13sp"
                     app:cornerRadius="14dp" />
@@ -173,7 +173,7 @@
                     android:layout_height="44dp"
                     android:layout_weight="1"
                     android:minWidth="0dp"
-                    android:text="归档 0"
+                    android:text="@string/tab_archived"
                     android:textAllCaps="false"
                     android:textSize="13sp"
                     app:cornerRadius="14dp" />
@@ -185,7 +185,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:alpha="0.7"
-                android:text="点按查看全文 · 左滑归档 · 长按删除"
+                android:text="@string/list_hint_active"
                 android:textColor="@color/app_text_muted"
                 android:textSize="12sp" />
 
@@ -194,7 +194,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="18dp"
-                android:text="还没有提醒。收到含时间的通知后会自动出现在这里。"
+                android:text="@string/empty_active"
                 android:textColor="@color/app_text_muted"
                 android:textSize="14sp" />
 
@@ -208,12 +208,12 @@
 
             <TextView
                 style="@style/SectionLabel"
-                android:text="未记录的通知" />
+                android:text="@string/section_dropped" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="这些通知被过滤了或没识别出时间。可以在这里补录、监听来源 App、或屏蔽该会话。"
+                android:text="@string/dropped_hint"
                 android:textColor="@color/app_text_muted"
                 android:textSize="12sp" />
 
@@ -222,7 +222,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingVertical="10dp"
-                android:text="没有未记录的通知。"
+                android:text="@string/dropped_empty"
                 android:textColor="@color/app_text_muted"
                 android:textSize="14sp" />
 
@@ -238,13 +238,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:text="清空未记录列表"
+                android:text="@string/clear_dropped"
                 android:textAllCaps="false"
                 android:textSize="13sp" />
 
             <TextView
                 style="@style/SectionLabel"
-                android:text="最近处理的通知" />
+                android:text="@string/section_recent" />
 
             <TextView
                 android:id="@+id/logText"

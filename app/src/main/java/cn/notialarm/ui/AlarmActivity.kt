@@ -60,7 +60,7 @@ class AlarmActivity : AppCompatActivity() {
             })
         }
         chips.addView(Chip(this).apply {
-            text = "自定义…"
+            text = getString(R.string.snooze_custom)
             setOnClickListener { askCustomSnooze() }
         })
 
@@ -111,11 +111,11 @@ class AlarmActivity : AppCompatActivity() {
         if (r.archived) { finish(); return }
         findViewById<TextView>(R.id.tvTitle).text = r.title
         findViewById<TextView>(R.id.tvWhen).text = buildString {
-            append(Notifier.whenText(r))
-            if (r.timeAssumed) append("\n原文只写了日期，时间按默认值估算")
+            append(Notifier.whenText(this@AlarmActivity, r))
+            if (r.timeAssumed) append(getString(R.string.alarm_assumed))
         }
-        findViewById<TextView>(R.id.tvSource).text = "来自 ${r.source}"
-        findViewById<TextView>(R.id.tvBody).text = r.text.ifBlank { "（这条提醒没有正文）" }
+        findViewById<TextView>(R.id.tvSource).text = getString(R.string.alarm_source, r.source)
+        findViewById<TextView>(R.id.tvBody).text = r.text.ifBlank { getString(R.string.alarm_no_body) }
 
         if (intent.getBooleanExtra(Notifier.EXTRA_JUMP, false)) {
             intent.removeExtra(Notifier.EXTRA_JUMP)
@@ -133,24 +133,24 @@ class AlarmActivity : AppCompatActivity() {
             // 已经跳到微信/QQ，这一次响铃就可以停了
             send(AlarmService.ACTION_STOP)
         } else {
-            Toast.makeText(this, "原通知已消失，无法跳回；可以到应用列表里打开来源 App", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.alarm_jump_failed, Toast.LENGTH_LONG).show()
         }
     }
 
     private fun askCustomSnooze() {
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
-            hint = "分钟数，如 20"
+            hint = getString(R.string.hint_custom_snooze)
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("延后多少分钟后再次响铃？")
+            .setTitle(R.string.dialog_custom_snooze)
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton(R.string.action_ok) { _, _ ->
                 val min = input.text.toString().toIntOrNull()
                 if (min != null && min in 1..24 * 60) send(AlarmService.ACTION_SNOOZE, min)
-                else Toast.makeText(this, "请输入 1–1440 之间的分钟数", Toast.LENGTH_SHORT).show()
+                else Toast.makeText(this, R.string.invalid_snooze, Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -175,14 +175,14 @@ class AlarmActivity : AppCompatActivity() {
                     ?.let { AlarmScheduler.plan(this, it).isNotEmpty() } == true
                 Toast.makeText(
                     this,
-                    if (stillRinging) "已关闭本次响铃；之后的提前提醒仍会响" else "已关闭本次响铃",
+                    if (stillRinging) getString(R.string.alarm_closed_once) else getString(R.string.alarm_closed_once_only),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
             AlarmService.ACTION_SNOOZE ->
-                Toast.makeText(this, "将在${Fmt.minutes(minutes)}后再次响铃", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.alarm_snoozed, Fmt.minutes(minutes)), Toast.LENGTH_SHORT).show()
             AlarmService.ACTION_CONFIRM ->
-                Toast.makeText(this, "已彻底关闭：这条提醒以后不会再响", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.alarm_confirmed, Toast.LENGTH_SHORT).show()
         }
         finish()
     }

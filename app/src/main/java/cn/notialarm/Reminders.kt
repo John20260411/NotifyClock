@@ -186,41 +186,49 @@ object Reminders {
 }
 
 object Fmt {
-    private val WEEK = arrayOf("一", "二", "三", "四", "五", "六", "日")
+    private fun s(id: Int, vararg args: Any): String =
+        NotiAlarmApp.appContext.getString(id, *args)
+
     private val HM = DateTimeFormatter.ofPattern("HH:mm")
-    private val MD = DateTimeFormatter.ofPattern("M月d日")
     val INPUT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
-    /** “明天 周日 15:00” / “11月5日 周四 23:59” */
+    /** “明天 周日 15:00” / “Tomorrow Sun 15:00” */
     fun dateTime(t: LocalDateTime): String {
         val today = LocalDate.now()
         val day = when (t.toLocalDate()) {
-            today -> "今天"
-            today.plusDays(1) -> "明天"
-            today.plusDays(2) -> "后天"
-            else -> t.format(MD)
+            today -> s(R.string.time_today)
+            today.plusDays(1) -> s(R.string.time_tomorrow)
+            today.plusDays(2) -> s(R.string.time_day_after)
+            else -> t.format(DateTimeFormatter.ofPattern(s(R.string.date_md_pattern)))
         }
-        return "$day 周${WEEK[t.dayOfWeek.value - 1]} ${t.format(HM)}"
+        val weekdays = NotiAlarmApp.appContext.resources.getStringArray(R.array.weekdays)
+        return "$day ${weekdays[t.dayOfWeek.value - 1]} ${t.format(HM)}"
     }
 
-    /** 90 -> “1小时30分钟” */
+    /** 90 -> “1小时30分钟” / “1 hr 30 min” */
     fun minutes(min: Int): String = when {
-        min < 60 -> "${min}分钟"
-        min % 1440 == 0 -> "${min / 1440}天"
-        min % 60 == 0 -> "${min / 60}小时"
-        else -> "${min / 60}小时${min % 60}分钟"
+        min < 60 -> s(R.string.time_minutes, min)
+        min % 1440 == 0 -> if (min / 1440 == 1) s(R.string.time_day) else s(R.string.time_days, min / 1440)
+        min % 60 == 0 -> s(R.string.time_hours, min / 60)
+        else -> s(R.string.time_hours_minutes, min / 60, min % 60)
     }
 
-    fun offset(min: Int): String = if (min == 0) "准时" else "提前${minutes(min)}"
+    fun offset(min: Int): String =
+        if (min == 0) s(R.string.time_on_time) else s(R.string.offset_ahead, minutes(min))
 
-    fun offsets(list: List<Int>): String = list.joinToString("、") { offset(it) }
+    fun offsets(list: List<Int>): String =
+        list.joinToString(s(R.string.list_separator)) { offset(it) }
 
     /** “将在 07:30、08:50、09:00 响铃”；和事件不在同一天的带上日期。 */
     fun ringTimes(event: LocalDateTime, times: List<LocalDateTime>): String {
-        if (times.isEmpty()) return "没有需要响铃的时间（都已过去）"
-        val md = DateTimeFormatter.ofPattern("M/d HH:mm")
-        return "将在 " + times.joinToString("、") {
-            if (it.toLocalDate() == event.toLocalDate()) it.format(HM) else it.format(md)
-        } + " 响铃"
+        if (times.isEmpty()) return s(R.string.time_no_future)
+        val md = DateTimeFormatter.ofPattern(s(R.string.date_md_time_pattern))
+        val sep = s(R.string.list_separator)
+        return s(
+            R.string.time_ring_at,
+            times.joinToString(sep) {
+                if (it.toLocalDate() == event.toLocalDate()) it.format(HM) else it.format(md)
+            },
+        )
     }
 }

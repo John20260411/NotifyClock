@@ -2,6 +2,7 @@ package cn.notialarm.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import cn.notialarm.R
 import org.json.JSONObject
 import java.time.Instant
 import java.time.LocalDate
@@ -72,13 +73,22 @@ object Diag {
         val lastApp = if (fresh) "" else sp.getString(KEY_LAST_APP, "").orEmpty()
         val lastAt = if (fresh) 0L else sp.getLong(KEY_LAST_AT, 0)
         val connectedAt = sp.getLong(KEY_CONNECTED_AT, 0)
-        val state = if (connected) "已连接" else "未连接（点上面的“测试通知监听”或重连）"
+        val state = ctx.getString(
+            if (connected) R.string.diag_service_connected else R.string.diag_service_disconnected
+        )
         return buildString {
-            append("监听服务：$state")
-            if (connectedAt > 0) append("（上次连接 ${t(connectedAt)}）")
-            append("\n今日：收到 $received 条 · 进入解析 $allowed 条 · 创建 $created 条 · 未记录 $dropped 条")
-            if (lastAt > 0) append("\n最近一条：${lastApp.ifBlank { "未知应用" }} ${t(lastAt)}")
-            if (received == 0) append("\n如果手机刚重启或刚覆盖安装，请在通知使用权里把本应用关掉再打开一次。")
+            append(state)
+            if (connectedAt > 0) append(ctx.getString(R.string.diag_connected_at, t(connectedAt)))
+            append("\n")
+            append(ctx.getString(R.string.diag_today, received, allowed, created, dropped))
+            if (lastAt > 0) {
+                append("\n")
+                append(ctx.getString(R.string.diag_last, lastApp.ifBlank { ctx.getString(R.string.diag_unknown_app) }, t(lastAt)))
+            }
+            if (received == 0) {
+                append("\n")
+                append(ctx.getString(R.string.diag_restart_hint))
+            }
         }
     }
 }

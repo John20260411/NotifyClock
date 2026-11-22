@@ -34,6 +34,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import cn.notialarm.Fmt
+import cn.notialarm.NotiAlarmApp
 import cn.notialarm.Notifier
 import cn.notialarm.NotifyListener
 import cn.notialarm.R
@@ -79,6 +80,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var etKey: EditText
     private lateinit var etModel: EditText
     private lateinit var swMonitorAll: MaterialSwitch
+    private lateinit var rgLanguage: RadioGroup
     private lateinit var btnQuietStart: Button
     private lateinit var btnQuietEnd: Button
 
@@ -97,7 +99,7 @@ class SettingsActivity : AppCompatActivity() {
         if (uri == null || uri == RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)) {
             setSound("", "")
         } else {
-            setSound(uri.toString(), RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: "系统铃声")
+            setSound(uri.toString(), RingtoneManager.getRingtone(this, uri)?.getTitle(this) ?: getString(R.string.ringtone_system))
         }
     }
 
@@ -106,16 +108,16 @@ class SettingsActivity : AppCompatActivity() {
         // 持久授权，重启手机后闹钟服务仍能读这个文件
         runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: "本地音乐"
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: getString(R.string.ringtone_local)
         setSound(uri.toString(), name)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
-        title = "设置"
+        title = getString(R.string.action_settings)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.subtitle = "修改会自动保存"
+        supportActionBar?.subtitle = getString(R.string.autosave_hint)
         prefs = Prefs(this)
 
         permContainer = findViewById(R.id.permContainer)
@@ -139,6 +141,7 @@ class SettingsActivity : AppCompatActivity() {
         etKey = findViewById(R.id.etKey)
         etModel = findViewById(R.id.etModel)
         swMonitorAll = findViewById(R.id.swMonitorAll)
+        rgLanguage = findViewById(R.id.rgLanguage)
         val spBlackType = findViewById<Spinner>(R.id.spBlackType)
         val etBlackValue = findViewById<EditText>(R.id.etBlackValue)
         tvSound = findViewById(R.id.tvSound)
@@ -156,8 +159,8 @@ class SettingsActivity : AppCompatActivity() {
         swQuietKeep.isChecked = prefs.quietKeepOnTime
         quietStart = prefs.quietStart
         quietEnd = prefs.quietEnd
-        btnQuietStart.text = "开始 $quietStart"
-        btnQuietEnd.text = "结束 $quietEnd"
+        btnQuietStart.text = getString(R.string.quiet_start_fmt, quietStart.toString())
+        btnQuietEnd.text = getString(R.string.quiet_end_fmt, quietEnd.toString())
         rgMode.check(
             when (prefs.parseMode) {
                 Prefs.MODE_RULE -> R.id.rbRule
@@ -169,6 +172,25 @@ class SettingsActivity : AppCompatActivity() {
         etKey.setText(prefs.llmApiKey)
         etModel.setText(prefs.llmModel)
         swMonitorAll.isChecked = prefs.monitorAll
+
+        rgLanguage.check(
+            when (prefs.language) {
+                "zh" -> R.id.rbLangZh
+                "en" -> R.id.rbLangEn
+                else -> R.id.rbLangSystem
+            }
+        )
+        rgLanguage.setOnCheckedChangeListener { _, checkedId ->
+            val tag = when (checkedId) {
+                R.id.rbLangZh -> "zh"
+                R.id.rbLangEn -> "en"
+                else -> ""
+            }
+            if (tag == prefs.language) return@setOnCheckedChangeListener
+            prefs.language = tag
+            NotiAlarmApp.applyLanguage(tag)
+            recreate()
+        }
 
         // 所有设置项都即时生效：变更后 400ms 合并写一次，离开页面时再强制落盘一次。
         etOffsets.doAfterTextChanged { scheduleSave() }
@@ -186,12 +208,16 @@ class SettingsActivity : AppCompatActivity() {
         spBlackType.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
-            listOf("群聊名称", "关键词", "App 包名"),
+            listOf(
+                getString(R.string.black_type_conversation),
+                getString(R.string.black_type_keyword),
+                getString(R.string.black_type_package),
+            ),
         )
         findViewById<Button>(R.id.btnAddBlack).setOnClickListener {
             val value = etBlackValue.text.toString().trim()
             if (value.isEmpty()) {
-                etBlackValue.error = "先填写要屏蔽的内容"
+                etBlackValue.error = getString(R.string.hint_black_value)
                 return@setOnClickListener
             }
             when (spBlackType.selectedItemPosition) {
@@ -204,7 +230,8 @@ class SettingsActivity : AppCompatActivity() {
             renderBlacklist()
             Toast.makeText(
                 this,
-                if (archived > 0) "已添加，顺手归档了 $archived 条命中的提醒" else "已添加",
+                if (archived > 0) getString(R.string.toast_black_added_archived, archived)
+                else getString(R.string.toast_black_added),
                 Toast.LENGTH_SHORT,
             ).show()
         }
@@ -217,15 +244,17 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnPickRingtone).setOnClickListener {
             stopPreview()
             MaterialAlertDialogBuilder(this)
-                .setTitle("更换铃声")
-                .setItems(arrayOf("系统铃声", "本地音乐")) { _, which ->
+                .setTitle(R.string.change_ringtone)
+                .setItems(
+                    arrayOf(getString(R.string.ringtone_system), getString(R.string.ringtone_local))
+                ) { _, which ->
                     if (which == 0) {
                         pickRingtone.launch(
                             Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
                                 .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_RINGTONE)
                                 .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
                                 .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "选择闹钟铃声")
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.pick_alarm_sound))
                                 .putExtra(
                                     RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
                                     soundUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
@@ -236,7 +265,7 @@ class SettingsActivity : AppCompatActivity() {
                         pickMusic.launch(arrayOf("audio/*"))
                     }
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
         btnPreview.setOnClickListener { if (preview == null) startPreview() else stopPreview() }
@@ -248,14 +277,14 @@ class SettingsActivity : AppCompatActivity() {
         btnQuietStart.setOnClickListener {
             TimePickerDialog(this, { _, h, m ->
                 quietStart = LocalTime.of(h, m)
-                btnQuietStart.text = "开始 $quietStart"
+                btnQuietStart.text = getString(R.string.quiet_start_fmt, quietStart.toString())
                 scheduleSave()
             }, quietStart.hour, quietStart.minute, true).show()
         }
         btnQuietEnd.setOnClickListener {
             TimePickerDialog(this, { _, h, m ->
                 quietEnd = LocalTime.of(h, m)
-                btnQuietEnd.text = "结束 $quietEnd"
+                btnQuietEnd.text = getString(R.string.quiet_end_fmt, quietEnd.toString())
                 scheduleSave()
             }, quietEnd.hour, quietEnd.minute, true).show()
         }
@@ -265,15 +294,15 @@ class SettingsActivity : AppCompatActivity() {
             prefs.llmApiKey = etKey.text.toString()
             prefs.llmModel = etModel.text.toString()
             if (!prefs.llmReady) {
-                Toast.makeText(this, "请先填写接口地址、API Key 和模型名", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.llm_need_config, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Toast.makeText(this, "正在请求…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.llm_requesting, Toast.LENGTH_SHORT).show()
             Thread {
                 val msg = runCatching { LlmParser.parse(prefs, "明天下午3点在正心楼开组会，别迟到") }
                     .fold(
-                        { r -> if (r == null) "接口正常，但模型认为不是事件" else "成功：${Fmt.dateTime(r.time)} ${r.title}" },
-                        { e -> "失败：${e.message}" },
+                        { r -> if (r == null) getString(R.string.llm_not_event) else getString(R.string.llm_ok, Fmt.dateTime(r.time), r.title) },
+                        { e -> getString(R.string.llm_failed, e.message.orEmpty()) },
                     )
                 runOnUiThread { Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
             }.start()
@@ -299,19 +328,19 @@ class SettingsActivity : AppCompatActivity() {
 
         val offsets = Prefs.parseOffsets(etOffsets.text.toString())
         if (offsets == null) {
-            if (showErrors) etOffsets.error = "用逗号分隔的分钟数，如 60,10,0（最多 ${Prefs.MAX_OFFSETS} 个）"
+            if (showErrors) etOffsets.error = getString(R.string.error_offsets, Prefs.MAX_OFFSETS)
         } else {
             etOffsets.error = null
         }
 
         val ring = etRing.text.toString().trim().toIntOrNull()
         val ringValid = ring != null && ring in 0..Prefs.MAX_RING_MINUTES
-        if (!ringValid && showErrors) etRing.error = "0–${Prefs.MAX_RING_MINUTES} 分钟，0 = 一直响到确认"
+        if (!ringValid && showErrors) etRing.error = getString(R.string.error_ring, Prefs.MAX_RING_MINUTES)
         if (ringValid) etRing.error = null
 
         val snooze = Prefs.parseOffsets(etSnooze.text.toString())?.filter { it > 0 }
         val snoozeValid = !snooze.isNullOrEmpty()
-        if (!snoozeValid && showErrors) etSnooze.error = "用逗号分隔的分钟数，如 5,10,30,60"
+        if (!snoozeValid && showErrors) etSnooze.error = getString(R.string.error_snooze)
         if (snoozeValid) etSnooze.error = null
 
         // 开始和结束相同表示没有免打扰时段，QuietHours.window 会直接返回 null。
@@ -352,13 +381,13 @@ class SettingsActivity : AppCompatActivity() {
         )
         if (oldAlarm != newAlarm) Reminders.rescheduleAll(this)
 
-        supportActionBar?.subtitle = "已自动保存 ${LocalTime.now().withNano(0)}"
+        supportActionBar?.subtitle = getString(R.string.toast_saved_auto, LocalTime.now().withNano(0).toString())
         handler.removeCallbacks(resetSubtitle)
         handler.postDelayed(resetSubtitle, 2000)
     }
 
     private val resetSubtitle = Runnable {
-        supportActionBar?.subtitle = "修改会自动保存"
+        supportActionBar?.subtitle = getString(R.string.autosave_hint)
     }
 
     override fun onResume() {
@@ -393,13 +422,13 @@ class SettingsActivity : AppCompatActivity() {
         }
         val scroll = ScrollView(this).apply { addView(tv) }
         MaterialAlertDialogBuilder(this)
-            .setTitle("最近通知处理记录")
+            .setTitle(R.string.attempts_title)
             .setView(scroll)
-            .setPositiveButton("关闭", null)
-            .setNeutralButton("复制") { _, _ ->
+            .setPositiveButton(R.string.action_close, null)
+            .setNeutralButton(R.string.copy) { _, _ ->
                 val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("NotiAlarm 诊断", body))
-                Toast.makeText(this@SettingsActivity, "已复制", Toast.LENGTH_SHORT).show()
+                cm.setPrimaryClip(ClipData.newPlainText(getString(R.string.diagnostic_clip), body))
+                Toast.makeText(this@SettingsActivity, R.string.toast_copied, Toast.LENGTH_SHORT).show()
             }
             .show()
     }
@@ -409,16 +438,16 @@ class SettingsActivity : AppCompatActivity() {
     /** 给自己发一条通知，2 秒内监听服务收到就说明链路通了。 */
     private fun testListener() {
         if (!Permissions.listenerGranted(this)) {
-            Toast.makeText(this, "请先开启通知使用权", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_listener_need, Toast.LENGTH_SHORT).show()
             return
         }
         val sentAt = System.currentTimeMillis()
         Notifier.listenerTest(this)
         handler.postDelayed({
             if (NotifyListener.lastTestAck >= sentAt) {
-                Toast.makeText(this, "✅ 监听正常：能收到通知", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, R.string.toast_listener_ok, Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(this, "❌ 没收到测试通知，正在尝试重连监听服务…", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, R.string.toast_listener_fail, Toast.LENGTH_LONG).show()
                 NotifyListener.rebind(this)
             }
             Permissions.render(this, permContainer)
@@ -429,7 +458,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun setSound(uri: String, name: String) {
         soundUri = uri
         soundName = name
-        tvSound.text = "当前铃声：" + if (uri.isBlank()) "系统默认闹钟铃声" else name
+        tvSound.text = getString(R.string.now_ringtone, if (uri.isBlank()) getString(R.string.default_alarm_sound) else name)
         if (preview != null) { stopPreview(); startPreview() }
         scheduleSave()
     }
@@ -443,15 +472,15 @@ class SettingsActivity : AppCompatActivity() {
             ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         preview = runCatching { AlarmService.play(this, uri, attrs) }
-            .onFailure { Toast.makeText(this, "无法播放：${it.message}", Toast.LENGTH_SHORT).show() }
+            .onFailure { Toast.makeText(this, getString(R.string.toast_play_failed, it.message.orEmpty()), Toast.LENGTH_SHORT).show() }
             .getOrNull()
-        btnPreview.text = if (preview != null) "停止" else "试听"
+        btnPreview.text = getString(if (preview != null) R.string.stop_preview else R.string.preview)
     }
 
     private fun stopPreview() {
         preview?.runCatching { stop(); release() }
         preview = null
-        btnPreview.text = "试听"
+        btnPreview.text = getString(R.string.preview)
     }
 
     override fun onPause() {
@@ -467,12 +496,12 @@ class SettingsActivity : AppCompatActivity() {
         val status = findViewById<TextView>(R.id.blackStatus)
         container.removeAllViews()
         val rows = mutableListOf<Triple<String, String, String>>()
-        prefs.blackConversations.sorted().forEach { rows += Triple("群聊", "conversation", it) }
-        prefs.blackKeywords.sorted().forEach { rows += Triple("关键词", "keyword", it) }
-        prefs.blackPackages.sorted().forEach { rows += Triple("应用", "pkg", it) }
+        prefs.blackConversations.sorted().forEach { rows += Triple(getString(R.string.black_kind_conversation), "conversation", it) }
+        prefs.blackKeywords.sorted().forEach { rows += Triple(getString(R.string.black_kind_keyword), "keyword", it) }
+        prefs.blackPackages.sorted().forEach { rows += Triple(getString(R.string.black_kind_pkg), "pkg", it) }
         status.text =
-            if (rows.isEmpty()) "还没有黑名单规则"
-            else "共 ${rows.size} 条规则；命中后直接跳过，不创建提醒"
+            if (rows.isEmpty()) getString(R.string.blacklist_empty)
+            else getString(R.string.blacklist_summary, rows.size)
         for ((label, kind, value) in rows) {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -485,7 +514,7 @@ class SettingsActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             }
             val remove = Button(this).apply {
-                text = "移除"
+                text = getString(R.string.remove)
                 textSize = 12f
                 minWidth = 0
                 setOnClickListener {
@@ -525,9 +554,9 @@ class SettingsActivity : AppCompatActivity() {
             val sorted = apps.sortedWith(compareBy({ it.first !in selected }, { it.second }))
             runOnUiThread {
                 status.text = if (prefs.monitorAll) {
-                    "正在监听所有 App（未记录列表仍只显示下面勾选的应用）"
+                    getString(R.string.apps_monitor_all)
                 } else {
-                    "勾选要监听的 App（共 ${sorted.size} 个）；未记录列表只显示这里勾选的应用"
+                    getString(R.string.apps_count, sorted.size)
                 }
                 for ((pkg, label) in sorted) {
                     container.addView(CheckBox(this).apply {

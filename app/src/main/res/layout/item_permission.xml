@@ -31,5 +31,5 @@
         style="@style/ActionButton.Small"
         android:layout_width="wrap_content"
         android:layout_height="36dp"
-        android:text="去开启" />
+        android:text="@string/action_go_enable" />
 </LinearLayout>

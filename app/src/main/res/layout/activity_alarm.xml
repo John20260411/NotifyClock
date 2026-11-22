@@ -75,7 +75,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="延后提醒"
+                android:text="@string/snooze_label_short"
                 android:textColor="#FFD8C7A5"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -101,7 +101,7 @@
                     android:id="@+id/btnStop"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:text="仅关闭本次响铃"
+                    android:text="@string/action_close_once"
                     android:textSize="16sp" />
 
                 <Button
@@ -109,7 +109,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_marginTop="6dp"
-                    android:text="彻底关闭这条提醒"
+                    android:text="@string/action_close_forever"
                     android:textSize="16sp" />
 
                 <Button
@@ -117,7 +117,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
                     android:layout_marginTop="6dp"
-                    android:text="打开原通知"
+                    android:text="@string/action_open_source"
                     android:textSize="16sp" />
             </LinearLayout>
         </LinearLayout>

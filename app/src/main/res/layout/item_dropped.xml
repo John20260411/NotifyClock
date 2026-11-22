@@ -44,17 +44,17 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBlock"
                 style="@style/ItemAction"
-                android:text="屏蔽此会话" />
+                android:text="@string/block_conversation" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRetry"
                 style="@style/ItemAction"
-                android:text="重试识别" />
+                android:text="@string/action_retry" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDismiss"
                 style="@style/ItemAction"
-                android:text="忽略" />
+                android:text="@string/action_ignore" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

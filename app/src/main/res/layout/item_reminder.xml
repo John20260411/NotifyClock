@@ -81,17 +81,17 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEdit"
                 style="@style/ItemAction"
-                android:text="修改" />
+                android:text="@string/action_edit" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpen"
                 style="@style/ItemAction"
-                android:text="打开原通知" />
+                android:text="@string/action_open_source" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnConfirm"
                 style="@style/ItemAction"
-                android:text="彻底关闭" />
+                android:text="@string/action_confirm_off" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

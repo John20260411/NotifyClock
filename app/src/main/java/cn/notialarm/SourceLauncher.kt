@@ -93,7 +93,7 @@ object SourceLauncher {
         for (pi in candidates) {
             try {
                 pi.send()
-                ActivityLog.add(ctx, "已跳回原通知 · ${r.source}")
+                ActivityLog.add(ctx, ctx.getString(R.string.log_jump_ok, r.source))
                 return true
             } catch (t: Throwable) {
                 // 通知已被清除时 PendingIntent 会失效，继续尝试下一种方式。
@@ -105,14 +105,14 @@ object SourceLauncher {
                 launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 return try {
                     ctx.startActivity(launch)
-                    ActivityLog.add(ctx, "原通知已消失，已打开 ${r.source}")
+                    ActivityLog.add(ctx, ctx.getString(R.string.log_jump_app, r.source))
                     true
                 } catch (t: Throwable) {
                     false
                 }
             }
         }
-        ActivityLog.add(ctx, "无法跳转：原通知已消失，或来源 App 已卸载")
+        ActivityLog.add(ctx, ctx.getString(R.string.log_jump_failed))
         return false
     }
 }

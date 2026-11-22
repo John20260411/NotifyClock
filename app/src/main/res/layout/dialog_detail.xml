@@ -60,16 +60,16 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/dlgBtn1"
             style="@style/ItemAction"
-            android:text="修改" />
+            android:text="@string/action_edit" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/dlgBtn2"
             style="@style/ItemAction"
-            android:text="打开原通知" />
+            android:text="@string/action_open_source" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/dlgBtn3"
             style="@style/ItemAction"
-            android:text="彻底关闭" />
+            android:text="@string/action_confirm_off" />
     </LinearLayout>
 </LinearLayout>

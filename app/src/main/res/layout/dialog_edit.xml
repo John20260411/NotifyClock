@@ -10,7 +10,7 @@
         android:paddingHorizontal="24dp"
         android:paddingTop="8dp">
 
-        <TextView style="@style/FieldLabel" android:text="事件" />
+        <TextView style="@style/FieldLabel" android:text="@string/section_event" />
 
         <EditText
             android:id="@+id/etTitle"
@@ -18,7 +18,7 @@
             android:layout_height="wrap_content"
             android:inputType="text" />
 
-        <TextView style="@style/FieldLabel" android:text="时间（yyyy-MM-dd HH:mm）" />
+        <TextView style="@style/FieldLabel" android:text="@string/section_time" />
 
         <EditText
             android:id="@+id/etTime"
@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:inputType="datetime" />
 
-        <TextView style="@style/FieldLabel" android:text="提前多少分钟响铃（逗号分隔，0 = 准时）" />
+        <TextView style="@style/FieldLabel" android:text="@string/section_offsets" />
 
         <EditText
             android:id="@+id/etOffsets"

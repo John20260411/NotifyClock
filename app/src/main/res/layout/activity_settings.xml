@@ -12,11 +12,11 @@
 
         <TextView
             style="@style/SectionTitle"
-            android:text="权限" />
+            android:text="@string/section_permissions" />
 
         <TextView
             style="@style/FieldLabel"
-            android:text="绿色表示已开启。权限不全时，通知可能收不到或闹钟不响。" />
+            android:text="@string/permission_hint" />
 
         <LinearLayout
             android:id="@+id/permContainer"
@@ -30,7 +30,7 @@
             android:layout_width="match_parent"
             android:layout_height="44dp"
             android:layout_marginTop="4dp"
-            android:text="测试通知监听是否正常" />
+            android:text="@string/btn_test_listener" />
 
         <TextView
             android:id="@+id/tvDiag"
@@ -47,13 +47,45 @@
             android:layout_width="match_parent"
             android:layout_height="44dp"
             android:layout_marginTop="6dp"
-            android:text="查看最近通知处理记录" />
+            android:text="@string/btn_attempts" />
 
         <TextView
             style="@style/SectionTitle"
-            android:text="闹钟" />
+            android:text="@string/section_language" />
 
-        <TextView style="@style/FieldLabel" android:text="默认提前多少分钟响铃（逗号分隔，0 = 准时，最多 9 个）" />
+        <RadioGroup
+            android:id="@+id/rgLanguage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/rbLangSystem"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/language_system" />
+
+            <RadioButton
+                android:id="@+id/rbLangZh"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/language_zh" />
+
+            <RadioButton
+                android:id="@+id/rbLangEn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/language_en" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/FieldLabel"
+            android:text="@string/language_hint" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_alarm" />
+
+        <TextView style="@style/FieldLabel" android:text="@string/offsets_label" />
 
         <EditText
             android:id="@+id/etOffsets"
@@ -66,13 +98,13 @@
             android:id="@+id/swSound"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="响铃" />
+            android:text="@string/switch_sound" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/swVibrate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="振动" />
+            android:text="@string/switch_vibrate" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -93,7 +125,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="铃声"
+                    android:text="@string/ringtone_title"
                     android:textColor="@color/app_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -118,7 +150,7 @@
                         android:layout_width="0dp"
                         android:layout_height="44dp"
                         android:layout_weight="1"
-                        android:text="更换铃声"
+                        android:text="@string/change_ringtone"
                         android:textAllCaps="false"
                         android:textSize="14sp"
                         app:cornerRadius="14dp" />
@@ -129,7 +161,7 @@
                         android:layout_width="88dp"
                         android:layout_height="44dp"
                         android:layout_marginStart="10dp"
-                        android:text="试听"
+                        android:text="@string/preview"
                         android:textAllCaps="false"
                         android:textSize="14sp"
                         app:cornerRadius="14dp"
@@ -138,7 +170,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView style="@style/FieldLabel" android:text="音量跟随" />
+        <TextView style="@style/FieldLabel" android:text="@string/volume_follow" />
 
         <RadioGroup
             android:id="@+id/rgVolume"
@@ -150,17 +182,17 @@
                 android:id="@+id/rbAlarmVolume"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="闹钟音量" />
+                android:text="@string/volume_alarm" />
 
             <RadioButton
                 android:id="@+id/rbMediaVolume"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="媒体音量" />
+                android:text="@string/volume_media" />
         </RadioGroup>
 
-        <TextView style="@style/FieldLabel" android:text="每次响铃持续多少分钟（0 = 一直响到你确认，最长 30 分钟）" />
+        <TextView style="@style/FieldLabel" android:text="@string/ring_minutes_label" />
 
         <EditText
             android:id="@+id/etRingMinutes"
@@ -168,7 +200,7 @@
             android:layout_height="wrap_content"
             android:inputType="number" />
 
-        <TextView style="@style/FieldLabel" android:text="弹窗里的延后选项（分钟，逗号分隔；弹窗里还可以自定义）" />
+        <TextView style="@style/FieldLabel" android:text="@string/snooze_label" />
 
         <EditText
             android:id="@+id/etSnooze"
@@ -179,13 +211,13 @@
 
         <TextView
             style="@style/SectionTitle"
-            android:text="免打扰" />
+            android:text="@string/section_quiet" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/swQuiet"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="开启免打扰时段" />
+            android:text="@string/switch_quiet" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -210,17 +242,17 @@
 
         <TextView
             style="@style/FieldLabel"
-            android:text="落在免打扰时段里的提前提醒：如果时段结束时事件还没开始，改到时段结束时响；如果事件本身就在时段里（比如早上 6 点出发），改到时段开始前（睡前）响。" />
+            android:text="@string/quiet_hint" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/swQuietKeep"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="事件在免打扰时段里时，“准时”那次仍然响" />
+            android:text="@string/switch_quiet_keep" />
 
         <TextView
             style="@style/SectionTitle"
-            android:text="识别方式" />
+            android:text="@string/section_parse" />
 
         <RadioGroup
             android:id="@+id/rgMode"
@@ -231,24 +263,24 @@
                 android:id="@+id/rbHybrid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="规则优先，识别不了再问大模型（推荐）" />
+                android:text="@string/mode_hybrid" />
 
             <RadioButton
                 android:id="@+id/rbLlm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="大模型优先（更准，更费钱）" />
+                android:text="@string/mode_llm" />
 
             <RadioButton
                 android:id="@+id/rbRule"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="只用本地规则（离线、免费）" />
+                android:text="@string/mode_rule" />
         </RadioGroup>
 
         <TextView
             style="@style/FieldLabel"
-            android:text="大模型接口（OpenAI 兼容格式，DeepSeek / 通义千问 / Kimi / 智谱都可以）。只有像是含时间的消息才会发过去。" />
+            android:text="@string/llm_hint" />
 
         <EditText
             android:id="@+id/etUrl"
@@ -261,14 +293,14 @@
             android:id="@+id/etKey"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="API Key（sk-…）"
+            android:hint="@string/hint_api_key"
             android:inputType="textPassword" />
 
         <EditText
             android:id="@+id/etModel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="模型名，如 deepseek-chat"
+            android:hint="@string/hint_model"
             android:inputType="text" />
 
         <Button
@@ -276,15 +308,15 @@
             style="@style/ActionButton"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="测试大模型" />
+            android:text="@string/btn_test_llm" />
 
         <TextView
             style="@style/SectionTitle"
-            android:text="黑名单" />
+            android:text="@string/section_blacklist" />
 
         <TextView
             style="@style/FieldLabel"
-            android:text="命中黑名单的通知不会出现在提醒列表里。可以按群聊名称、关键词（正文里包含就算），或按 App 包名屏蔽。" />
+            android:text="@string/blacklist_hint" />
 
         <Spinner
             android:id="@+id/spBlackType"
@@ -295,7 +327,7 @@
             android:id="@+id/etBlackValue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="群聊名称 / 关键词 / App 包名"
+            android:hint="@string/hint_black_value"
             android:inputType="text" />
 
         <Button
@@ -303,14 +335,14 @@
             style="@style/ActionButton"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="添加黑名单" />
+            android:text="@string/btn_add_black" />
 
         <TextView
             android:id="@+id/blackStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:alpha="0.7"
-            android:text="还没有黑名单规则"
+            android:text="@string/blacklist_empty"
             android:textSize="12sp" />
 
         <LinearLayout
@@ -321,19 +353,19 @@
 
         <TextView
             style="@style/SectionTitle"
-            android:text="监听的 App" />
+            android:text="@string/section_apps" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/swMonitorAll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="监听所有 App（不限于下面勾选的）" />
+            android:text="@string/switch_monitor_all" />
 
         <TextView
             android:id="@+id/appsStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="正在读取已安装的 App…" />
+            android:text="@string/apps_loading" />
 
         <LinearLayout
             android:id="@+id/appsContainer"

@@ -21,6 +21,11 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("monitor_all", false)
         set(v) = sp.edit().putBoolean("monitor_all", v).apply()
 
+    /** 空字符串 = 跟随系统；否则是 BCP-47 语言标签，如 zh、en。 */
+    var language: String
+        get() = sp.getString(KEY_LANGUAGE, "")!!
+        set(v) = sp.edit().putString(KEY_LANGUAGE, v).apply()
+
     /** 按包名屏蔽整个 App。 */
     var blackPackages: Set<String>
         get() = sp.getStringSet(KEY_BLACK_PKGS, null)?.toSet() ?: emptySet()
@@ -142,6 +147,7 @@ class Prefs(ctx: Context) {
 
     companion object {
         private const val KEY_PKGS = "pkgs"
+        private const val KEY_LANGUAGE = "language"
         private const val KEY_BLACK_PKGS = "black_pkgs"
         private const val KEY_BLACK_CONVERSATIONS = "black_conversations"
         private const val KEY_BLACK_KEYWORDS = "black_keywords"

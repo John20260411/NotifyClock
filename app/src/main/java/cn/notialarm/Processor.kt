@@ -48,8 +48,8 @@ object Processor {
                     ctx, attemptId, "FAILED", reason = "EXCEPTION",
                     extra = "${t.javaClass.simpleName}: ${t.message.orEmpty().take(80)}",
                 )
-                ActivityLog.add(ctx, "${nowText()} [$attemptId] 处理异常：${t.javaClass.simpleName}")
-                null to "处理失败：${t.message.orEmpty().take(40)}"
+                ActivityLog.add(ctx, ctx.getString(R.string.proc_error, nowText(), attemptId, t.javaClass.simpleName))
+                null to ctx.getString(R.string.proc_error_toast, t.message.orEmpty().take(40))
             }
             onDone?.invoke(r, msg)
         }
@@ -69,7 +69,7 @@ object Processor {
         val text = incoming.text
         if (text.isBlank()) {
             AttemptLog.stage(ctx, attemptId, "FILTERED", reason = "EMPTY_TEXT")
-            return null to "通知没有正文"
+            return null to ctx.getString(R.string.proc_no_body)
         }
         // 主界面“试一试”没有包名，属于用户主动操作；重试也跳过去重，
         // 否则用户删掉提醒后再试一次会被 7 天去重挡掉，看起来像“没有创建”。
@@ -77,8 +77,8 @@ object Processor {
         val fastKey = if (manual) null else fastKey(incoming)
         if (fastKey != null && fastDuplicate(fastKey)) {
             AttemptLog.stage(ctx, attemptId, "FILTERED", reason = "FAST_DUPLICATE", text = text)
-            ActivityLog.add(ctx, "${nowText()} [$attemptId] 90 秒内重复通知，已忽略")
-            return null to "重复通知，已忽略"
+            ActivityLog.add(ctx, "${nowText()} [$attemptId] ${ctx.getString(R.string.proc_dup_90)}")
+            return null to ctx.getString(R.string.proc_dup_90_toast)
         }
 
         val prefs = Prefs(ctx)
@@ -102,13 +102,13 @@ object Processor {
         val brief = text.replace('\n', ' ').take(40)
         if (result == null) {
             fastKey?.let { releaseFast(it) }
-            val why = llmError?.let { "（大模型出错：$it）" }.orEmpty()
+            val why = llmError?.let { ctx.getString(R.string.proc_llm_error, it) }.orEmpty()
             AttemptLog.stage(
                 ctx, attemptId, "PARSE_FAIL", reason = "PARSE_NO_TIME",
                 extra = "llmErr=${llmError.orEmpty().take(80)}",
                 text = text, hasTime = false,
             )
-            ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] 未识别：$brief$why")
+            ActivityLog.add(ctx, ctx.getString(R.string.proc_unrecognized, nowText(), attemptId, incoming.source, "$brief$why"))
             if (incoming.recordDrop) {
                 DroppedStore.add(
                     ctx,
@@ -118,12 +118,12 @@ object Processor {
                         conversation = incoming.conversation,
                         title = incoming.title,
                         text = text,
-                        reason = "没有识别到时间$why",
+                        reason = ctx.getString(R.string.proc_no_time, why),
                     ),
                 )
                 Diag.onDropped(ctx)
             }
-            return null to "没有识别到时间$why"
+            return null to ctx.getString(R.string.proc_no_time, why)
         }
         AttemptLog.stage(
             ctx, attemptId, "PARSE_OK",
@@ -132,7 +132,7 @@ object Processor {
         )
 
         val title = result.title.ifBlank { incoming.title.ifBlank { incoming.source } }
-            .ifBlank { "通知" }
+            .ifBlank { ctx.getString(R.string.notif_alarm_title) }
         // 不同群聊里同一句话不能被当成同一条提醒：把会话名纳入去重键。
         val seenKey = "${incoming.pkg}|${incoming.conversation}|$title|${result.time}"
         if (!manual && SeenStore.isSeen(ctx, seenKey)) {
@@ -140,8 +140,8 @@ object Processor {
                 ctx, attemptId, "FILTERED", reason = "SEEN_DUPLICATE",
                 extra = "seenKey=${AttemptLog.shortHash(seenKey)}",
             )
-            ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] 7 天内已有相同提醒，已忽略")
-            return null to "已有相同提醒"
+            ActivityLog.add(ctx, ctx.getString(R.string.proc_seen, nowText(), "$attemptId] [${incoming.source}"))
+            return null to ctx.getString(R.string.proc_same)
         }
 
         val outcome = Reminders.createDetailed(ctx, incoming, title, result.time, result.assumed)
@@ -151,8 +151,8 @@ object Processor {
         when (outcome.status) {
             Reminders.CreateStatus.ACTIVE_DUPLICATE -> {
                 AttemptLog.stage(ctx, attemptId, "FILTERED", reason = "ACTIVE_DUPLICATE")
-                ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] 已有相同提醒")
-                return null to "已有相同提醒"
+                ActivityLog.add(ctx, ctx.getString(R.string.proc_seen, nowText(), "$attemptId] [${incoming.source}"))
+                return null to ctx.getString(R.string.proc_same)
             }
             Reminders.CreateStatus.PERSIST_FAILED -> {
                 fastKey?.let { releaseFast(it) }
@@ -160,8 +160,8 @@ object Processor {
                     ctx, attemptId, "FAILED", reason = "PERSIST_FAILED",
                     extra = outcome.error.orEmpty(),
                 )
-                ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] 保存失败")
-                return null to "保存失败，提醒未写入"
+                ActivityLog.add(ctx, ctx.getString(R.string.proc_save_failed, nowText(), "$attemptId] [${incoming.source}"))
+                return null to ctx.getString(R.string.proc_save_failed_toast)
             }
             Reminders.CreateStatus.SCHEDULE_FAILED -> {
                 Diag.onCreated(ctx)
@@ -169,7 +169,7 @@ object Processor {
                     ctx, attemptId, "CREATED", reason = "SCHEDULE_FAILED",
                     extra = "${outcome.error.orEmpty()} slots=${outcome.scheduled}", reminderId = r!!.id,
                 )
-                val msg = "已保存，但闹钟排程失败：${outcome.error.orEmpty().take(50)}"
+                val msg = ctx.getString(R.string.proc_schedule_failed, outcome.error.orEmpty().take(50))
                 ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] $msg（${result.matched}）")
                 return r to msg
             }
@@ -179,7 +179,7 @@ object Processor {
                     ctx, attemptId, "CREATED", reason = "NO_FUTURE_ALARM",
                     reminderId = r!!.id,
                 )
-                val msg = "已创建，但没有未来的响铃时间（时间可能已过）"
+                val msg = ctx.getString(R.string.proc_no_future)
                 ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] $msg（${result.matched}）")
                 return r to msg
             }
@@ -189,7 +189,7 @@ object Processor {
                     ctx, attemptId, "CREATED", reason = "CREATED",
                     extra = "slots=${outcome.scheduled}", reminderId = r!!.id,
                 )
-                val msg = "已创建：${Fmt.dateTime(result.time)} $title"
+                val msg = ctx.getString(R.string.proc_created, Fmt.dateTime(result.time), title)
                 ActivityLog.add(ctx, "${nowText()} [$attemptId] [${incoming.source}] $msg（${result.matched}）")
                 return r to msg
             }

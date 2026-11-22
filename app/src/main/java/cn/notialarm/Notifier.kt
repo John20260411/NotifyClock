@@ -33,8 +33,8 @@ object Notifier {
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CH_ALARM, "闹钟弹窗", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "到点时的全屏/横幅弹窗（铃声和振动由 App 自己控制）"
+            NotificationChannel(CH_ALARM, ctx.getString(R.string.notif_alarm_channel), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = ctx.getString(R.string.notif_alarm_channel_desc)
                 setSound(null, null)
                 enableVibration(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
@@ -43,22 +43,22 @@ object Notifier {
         )
         // 屏幕已亮、手机已解锁时用低优先级，避免通知横幅遮住正在显示的响铃页
         nm.createNotificationChannel(
-            NotificationChannel(CH_ALARM_QUIET, "闹钟（界面已显示）", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "响铃页面已经显示时使用，不会再弹横幅"
+            NotificationChannel(CH_ALARM_QUIET, ctx.getString(R.string.notif_alarm_quiet_channel), NotificationManager.IMPORTANCE_LOW).apply {
+                description = ctx.getString(R.string.notif_alarm_quiet_desc)
                 setSound(null, null)
                 enableVibration(false)
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_CREATED, "提醒汇总", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "所有待处理提醒合成一条通知，新提醒不会再刷屏"
+            NotificationChannel(CH_CREATED, ctx.getString(R.string.notif_created_channel), NotificationManager.IMPORTANCE_LOW).apply {
+                description = ctx.getString(R.string.notif_created_channel_desc)
                 setSound(null, null)
                 enableVibration(false)
                 setShowBadge(false)
             }
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_MISSED, "未处理的提醒", NotificationManager.IMPORTANCE_HIGH)
+            NotificationChannel(CH_MISSED, ctx.getString(R.string.notif_missed_channel), NotificationManager.IMPORTANCE_HIGH)
         )
     }
 
@@ -75,9 +75,9 @@ object Notifier {
             return
         }
         val style = NotificationCompat.InboxStyle()
-            .setBigContentTitle("通知闹钟：${active.size} 条待处理")
+            .setBigContentTitle(ctx.getString(R.string.notif_summary_title, active.size))
         active.take(6).forEach { style.addLine("${Fmt.dateTime(it.time)} · ${it.title}") }
-        if (active.size > 6) style.addLine("还有 ${active.size - 6} 条…")
+        if (active.size > 6) style.addLine(ctx.getString(R.string.notif_summary_more, active.size - 6))
 
         val open = PendingIntent.getActivity(
             ctx, 0, Intent(ctx, MainActivity::class.java),
@@ -86,7 +86,7 @@ object Notifier {
         val first = active.first()
         val b = NotificationCompat.Builder(ctx, CH_CREATED)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setContentTitle("通知闹钟：${active.size} 条待处理")
+            .setContentTitle(ctx.getString(R.string.notif_summary_title, active.size))
             .setContentText("${Fmt.dateTime(first.time)} · ${first.title}")
             .setStyle(style)
             .setContentIntent(open)
@@ -102,7 +102,7 @@ object Notifier {
                 Intent(ctx, UndoReceiver::class.java).putExtra(AlarmScheduler.EXTRA_ID, lastId),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-            b.addAction(0, "撤销最近一条", undo)
+            b.addAction(0, ctx.getString(R.string.notif_undo_last), undo)
         }
         notify(ctx, ID_RECORDED, b.build())
     }
@@ -111,8 +111,8 @@ object Notifier {
     fun listenerTest(ctx: Context) {
         val n = NotificationCompat.Builder(ctx, CH_CREATED)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setContentTitle("通知监听测试")
-            .setContentText("收到后会自动消失")
+            .setContentTitle(ctx.getString(R.string.notif_test_title))
+            .setContentText(ctx.getString(R.string.notif_test_text))
             .setTimeoutAfter(10_000)
             .build()
         notify(ctx, ID_LISTENER_TEST, n)
@@ -126,11 +126,11 @@ object Notifier {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val body = r?.let { "${whenText(it)}\n来自 ${it.source}\n\n${it.text}" }.orEmpty()
+        val body = r?.let { ctx.getString(R.string.notif_content, whenText(ctx, it), it.source, it.text) }.orEmpty()
         val b = NotificationCompat.Builder(ctx, if (fullScreen) CH_ALARM else CH_ALARM_QUIET)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setContentTitle(r?.title ?: "提醒")
-            .setContentText(r?.let { whenText(it) } ?: "")
+            .setContentTitle(r?.title ?: ctx.getString(R.string.notif_alarm_title))
+            .setContentText(r?.let { whenText(ctx, it) } ?: "")
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(if (fullScreen) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_LOW)
@@ -152,9 +152,9 @@ object Notifier {
         )
         val b = NotificationCompat.Builder(ctx, CH_MISSED)
             .setSmallIcon(R.drawable.ic_stat_alarm)
-            .setContentTitle("⏰ 未确认：${r.title}")
-            .setContentText(whenText(r))
-            .setStyle(NotificationCompat.BigTextStyle().bigText("${whenText(r)}\n来自 ${r.source}\n\n${r.text}"))
+            .setContentTitle(ctx.getString(R.string.notif_missed_title, r.title))
+            .setContentText(whenText(ctx, r))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(ctx.getString(R.string.notif_content, whenText(ctx, r), r.source, r.text)))
             .setContentIntent(open)
             .setAutoCancel(true)
         addButtons(ctx, b, r.id)
@@ -173,19 +173,19 @@ object Notifier {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        b.addAction(0, "仅关闭本次", stop)
-        b.addAction(0, "彻底关闭提醒", confirm)
-        b.addAction(0, "打开原通知", open)
+        b.addAction(0, ctx.getString(R.string.notif_action_close_once), stop)
+        b.addAction(0, ctx.getString(R.string.notif_action_close_forever), confirm)
+        b.addAction(0, ctx.getString(R.string.action_open_source), open)
         // 延后放在全屏页里选时长，通知栏只保留最常用的三个动作。
     }
 
     /** “还有 10 分钟 · 明天 周日 15:00” / “已开始 3 分钟 · …” */
-    fun whenText(r: Reminder): String {
+    fun whenText(ctx: Context, r: Reminder): String {
         val mins = Duration.between(LocalDateTime.now(), r.time).toMinutes().toInt()
         val lead = when {
-            mins >= 1 -> "还有${Fmt.minutes(mins)}"
-            mins <= -1 -> "已开始${Fmt.minutes(-mins)}"
-            else -> "现在开始"
+            mins >= 1 -> ctx.getString(R.string.time_remaining, Fmt.minutes(mins))
+            mins <= -1 -> ctx.getString(R.string.time_started, Fmt.minutes(-mins))
+            else -> ctx.getString(R.string.time_now)
         }
         return "$lead · ${Fmt.dateTime(r.time)}"
     }

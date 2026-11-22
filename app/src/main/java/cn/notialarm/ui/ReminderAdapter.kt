@@ -113,9 +113,9 @@ class ReminderAdapter(
             time.text = Fmt.dateTime(r.time)
             meta.text = buildString {
                 append(Fmt.offsets(r.offsets))
-                append("\n来自 ")
-                append(r.source)
-                if (r.archived) append(" · 已归档")
+                append("\n")
+                append(itemView.context.getString(R.string.source_fmt, r.source))
+                if (r.archived) append(itemView.context.getString(R.string.detail_archived_suffix))
             }
             val accentColor = if (r.archived) {
                 itemView.context.getColor(R.color.app_outline)
@@ -124,11 +124,11 @@ class ReminderAdapter(
             }
             accent.setBackgroundColor(accentColor)
             if (r.archived) {
-                btnEdit.text = "恢复"
-                btnConfirm.text = "删除"
+                btnEdit.text = itemView.context.getString(R.string.action_restore)
+                btnConfirm.text = itemView.context.getString(R.string.action_delete)
             } else {
-                btnEdit.text = "修改"
-                btnConfirm.text = "彻底关闭"
+                btnEdit.text = itemView.context.getString(R.string.action_edit)
+                btnConfirm.text = itemView.context.getString(R.string.action_confirm_off)
             }
         }
     }

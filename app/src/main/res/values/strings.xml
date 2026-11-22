@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">通知闹钟</string>
+    <string name="app_subtitle">把通知里的时间，变成准时响的闹钟</string>
+
+    <string name="action_settings">设置</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_close">关闭</string>
+    <string name="action_save">保存</string>
+    <string name="action_delete">删除</string>
+    <string name="action_edit">修改</string>
+    <string name="action_restore">恢复</string>
+    <string name="action_open_source">打开原通知</string>
+    <string name="action_close_once">仅关闭本次响铃</string>
+    <string name="action_close_forever">彻底关闭这条提醒</string>
+    <string name="action_confirm_off">彻底关闭</string>
+    <string name="action_go_enable">去开启</string>
+    <string name="action_go_settings">去设置</string>
+    <string name="action_retry">重试识别</string>
+    <string name="action_ignore">忽略</string>
+
+    <string name="section_try">试一试</string>
+    <string name="input_hint">粘贴一条消息，例如：明天下午3点在正心楼开组会</string>
+    <string name="btn_parse_create">识别并创建</string>
+    <string name="btn_manual_add">手动添加</string>
+    <string name="section_reminders">提醒</string>
+    <string name="tab_active">待处理</string>
+    <string name="tab_archived">归档</string>
+    <string name="list_hint_active">点按查看全文 · 左滑归档 · 长按删除</string>
+    <string name="list_hint_archived">点按查看全文 · 左滑恢复 · 长按删除</string>
+    <string name="empty_active">还没有待处理提醒。收到含时间的通知后会自动出现在这里。</string>
+    <string name="empty_archived">归档是空的。已过期或你点过“彻底关闭”的提醒会放在这里。</string>
+    <string name="section_dropped">未记录的通知</string>
+    <string name="dropped_hint">这些通知被过滤了或没识别出时间。可以在这里补录、监听来源 App、或屏蔽该会话。</string>
+    <string name="dropped_empty">没有未记录的通知。</string>
+    <string name="clear_dropped">清空未记录列表</string>
+    <string name="section_recent">最近处理的通知</string>
+    <string name="recent_empty">还没有处理过通知</string>
+
+    <string name="section_permissions">权限</string>
+    <string name="permission_hint">绿色表示已开启。权限不全时，通知可能收不到或闹钟不响。</string>
+    <string name="btn_test_listener">测试通知监听是否正常</string>
+    <string name="btn_attempts">查看最近通知处理记录</string>
+
+    <string name="section_alarm">闹钟</string>
+    <string name="offsets_label">默认提前多少分钟响铃（逗号分隔，0 = 准时，最多 9 个）</string>
+    <string name="switch_sound">响铃</string>
+    <string name="switch_vibrate">振动</string>
+    <string name="ringtone_title">铃声</string>
+    <string name="change_ringtone">更换铃声</string>
+    <string name="preview">试听</string>
+    <string name="stop_preview">停止</string>
+    <string name="volume_follow">音量跟随</string>
+    <string name="volume_alarm">闹钟音量</string>
+    <string name="volume_media">媒体音量</string>
+    <string name="ring_minutes_label">每次响铃持续多少分钟（0 = 一直响到你确认，最长 30 分钟）</string>
+    <string name="snooze_label">弹窗里的延后选项（分钟，逗号分隔；弹窗里还可以自定义）</string>
+
+    <string name="section_quiet">免打扰</string>
+    <string name="switch_quiet">开启免打扰时段</string>
+    <string name="quiet_start_fmt">开始 %1$s</string>
+    <string name="quiet_end_fmt">结束 %1$s</string>
+    <string name="quiet_hint">落在免打扰时段里的提前提醒：如果时段结束时事件还没开始，改到时段结束时响；如果事件本身就在时段里（比如早上 6 点出发），改到时段开始前（睡前）响。</string>
+    <string name="switch_quiet_keep">事件在免打扰时段里时，“准时”那次仍然响</string>
+
+    <string name="section_parse">识别方式</string>
+    <string name="mode_hybrid">规则优先，识别不了再问大模型（推荐）</string>
+    <string name="mode_llm">大模型优先（更准，更费钱）</string>
+    <string name="mode_rule">只用本地规则（离线、免费）</string>
+    <string name="llm_hint">大模型接口（OpenAI 兼容格式，DeepSeek / 通义千问 / Kimi / 智谱都可以）。只有像是含时间的消息才会发过去。</string>
+    <string name="hint_api_key">API Key（sk-…）</string>
+    <string name="hint_model">模型名，如 deepseek-chat</string>
+    <string name="btn_test_llm">测试大模型</string>
+
+    <string name="section_blacklist">黑名单</string>
+    <string name="blacklist_hint">命中黑名单的通知不会出现在提醒列表里。可以按群聊名称、关键词（正文里包含就算），或按 App 包名屏蔽。</string>
+    <string name="black_type_conversation">群聊名称</string>
+    <string name="black_type_keyword">关键词</string>
+    <string name="black_type_package">App 包名</string>
+    <string name="hint_black_value">群聊名称 / 关键词 / App 包名</string>
+    <string name="btn_add_black">添加黑名单</string>
+    <string name="blacklist_empty">还没有黑名单规则</string>
+    <string name="blacklist_summary">共 %1$d 条规则；命中后直接跳过，不创建提醒</string>
+    <string name="blacklist_row">%1$s：%2$s</string>
+    <string name="remove">移除</string>
+
+    <string name="section_apps">监听的 App</string>
+    <string name="switch_monitor_all">监听所有 App（不限于下面勾选的）</string>
+    <string name="apps_loading">正在读取已安装的 App…</string>
+    <string name="apps_count">勾选要监听的 App（共 %1$d 个）；未记录列表只显示这里勾选的应用</string>
+    <string name="apps_monitor_all">正在监听所有 App（未记录列表仍只显示下面勾选的应用）</string>
+
+    <string name="section_language">语言</string>
+    <string name="language_system">跟随系统语言</string>
+    <string name="language_zh">简体中文</string>
+    <string name="language_en">English</string>
+    <string name="language_hint">切换后应用名称和界面语言会一起变化；英文名称显示为 NotifyClock。</string>
+
+    <string name="section_event">事件</string>
+    <string name="section_time">时间（yyyy-MM-dd HH:mm）</string>
+    <string name="section_offsets">提前多少分钟响铃（逗号分隔，0 = 准时）</string>
+    <string name="snooze_label_short">延后提醒</string>
+    <string name="block_conversation">屏蔽此会话</string>
+
+    <string name="dialog_edit_title">修改提醒</string>
+    <string name="dialog_new_title">新建提醒</string>
+    <string name="dialog_delete_title">删除这条提醒？</string>
+    <string name="dialog_delete_message">删除后，这条提醒和它的闹钟都会移除。</string>
+    <string name="dialog_custom_snooze">延后多少分钟后再次响铃？</string>
+    <string name="hint_custom_snooze">分钟数，如 20</string>
+    <string name="invalid_snooze">请输入 1–1440 之间的分钟数</string>
+    <string name="old_text_label">原文（%1$s）：\n%2$s</string>
+
+    <string name="toast_restored">已恢复到待处理</string>
+    <string name="toast_deleted">已删除</string>
+    <string name="toast_closed_forever">已彻底关闭，这条以后不会再响</string>
+    <string name="toast_archived">已归档，可在“归档”里恢复</string>
+    <string name="toast_created_scrolled">已创建，并滚动到这条提醒</string>
+    <string name="toast_duplicate">已有相同标题和时间的提醒</string>
+    <string name="toast_edit_saved">已保存修改</string>
+    <string name="toast_cleared_dropped">已清空未记录列表</string>
+    <string name="toast_manual_source">手动测试</string>
+    <string name="toast_listen_added">已添加监听</string>
+    <string name="toast_block_added">已屏蔽</string>
+    <string name="toast_retry_failed">还没识别到时间，已保留在列表里</string>
+    <string name="toast_jump_failed">原通知已经消失，或来源 App 已卸载</string>
+    <string name="toast_saved_auto">已自动保存 %1$s</string>
+    <string name="autosave_hint">修改会自动保存</string>
+
+    <string name="perm_listener">通知使用权</string>
+    <string name="perm_listener_running">监听服务运行中</string>
+    <string name="perm_listener_disconnected">已授权，但监听服务没有连上。点“去开启”重连；还不行就在通知使用权里把本 App 关掉再打开</string>
+    <string name="perm_post">发送通知</string>
+    <string name="perm_post_desc">弹出提醒和闹钟</string>
+    <string name="perm_exact">精确闹钟</string>
+    <string name="perm_exact_desc">让闹钟准时响</string>
+    <string name="perm_fullscreen">全屏弹窗</string>
+    <string name="perm_fullscreen_desc">锁屏时直接弹出闹钟页面</string>
+    <string name="perm_overlay">显示在其他应用上层（悬浮窗）</string>
+    <string name="perm_overlay_desc">亮屏时弹出确认窗口，没有它只会显示横幅</string>
+    <string name="perm_battery">忽略电池优化</string>
+    <string name="perm_battery_desc">防止后台被系统杀掉</string>
+    <string name="perm_vendor">手机厂商权限（请手动确认）</string>
+    <string name="perm_vendor_desc">小米：后台弹出界面、锁屏显示、自启动；华为：应用启动管理改为手动并全部允许；OPPO/vivo：允许后台弹出、自启动</string>
+    <string name="perm_vendor_button">去设置</string>
+
+    <string name="notif_alarm_channel">闹钟弹窗</string>
+    <string name="notif_alarm_channel_desc">到点时的全屏/横幅弹窗（铃声和振动由 App 自己控制）</string>
+    <string name="notif_alarm_quiet_channel">闹钟（界面已显示）</string>
+    <string name="notif_alarm_quiet_desc">响铃页面已经显示时使用，不会再弹横幅</string>
+    <string name="notif_created_channel">提醒汇总</string>
+    <string name="notif_created_channel_desc">所有待处理提醒合成一条通知，新提醒不会再刷屏</string>
+    <string name="notif_missed_channel">未处理的提醒</string>
+    <string name="notif_summary_title">通知闹钟：%1$d 条待处理</string>
+    <string name="notif_summary_more">还有 %1$d 条…</string>
+    <string name="notif_undo_last">撤销最近一条</string>
+    <string name="notif_test_title">通知监听测试</string>
+    <string name="notif_test_text">收到后会自动消失</string>
+    <string name="notif_alarm_title">提醒</string>
+    <string name="notif_missed_title">⏰ 未确认：%1$s</string>
+    <string name="notif_content">%1$s\n来自 %2$s\n\n%3$s</string>
+    <string name="notif_action_close_once">仅关闭本次</string>
+    <string name="notif_action_close_forever">彻底关闭提醒</string>
+
+    <string name="time_today">今天</string>
+    <string name="time_tomorrow">明天</string>
+    <string name="time_day_after">后天</string>
+    <string name="time_weekday">%1$s 周%2$s %3$s</string>
+    <string name="time_minutes">%1$d分钟</string>
+    <string name="time_hours">%1$d小时</string>
+    <string name="time_hours_minutes">%1$d小时%2$d分钟</string>
+    <string name="time_days">%1$d天</string>
+    <string name="time_on_time">准时</string>
+    <string name="time_no_future">没有需要响铃的时间（都已过去）</string>
+    <string name="time_ring_at">将在 %1$s 响铃</string>
+    <string name="time_now">现在开始</string>
+    <string name="time_left">还有%1$s</string>
+    <string name="time_started">已开始%1$s</string>
+
+    <string name="alarm_no_body">（这条提醒没有正文）</string>
+    <string name="alarm_assumed">\n原文只写了日期，时间按默认值估算</string>
+    <string name="alarm_source">来自 %1$s</string>
+    <string name="alarm_jump_failed">原通知已消失，无法跳回；可以到应用列表里打开来源 App</string>
+    <string name="alarm_closed_once">已关闭本次响铃；之后的提前提醒仍会响</string>
+    <string name="alarm_snoozed">将在%1$s后再次响铃</string>
+
+    <string name="detail_no_body">（没有正文）</string>
+    <string name="detail_assumed">（原通知只写了日期，时间按默认估算）</string>
+    <string name="detail_source">来自 </string>
+    <string name="detail_closed_suffix"> · 已彻底关闭</string>
+    <string name="detail_archived_suffix"> · 已归档</string>
+    <string name="dropped_count">%1$s · %2$d 次</string>
+    <string name="dropped_block">屏蔽此会话</string>
+    <string name="dropped_ignore">以后不再记录</string>
+    <string name="dropped_listen">监听此应用</string>
+    <string name="dropped_retry">重试识别</string>
+
+    <string name="now_ringtone">当前铃声：%1$s</string>
+    <string name="default_alarm_sound">系统默认闹钟铃声</string>
+    <string name="pick_alarm_sound">选择闹钟铃声</string>
+    <string name="ringtone_system">系统铃声</string>
+    <string name="ringtone_local">本地音乐</string>
+    <string name="llm_need_config">请先填写接口地址、API Key 和模型名</string>
+    <string name="llm_requesting">正在请求…</string>
+    <string name="llm_not_event">接口正常，但模型认为不是事件</string>
+    <string name="llm_ok">成功：%1$s %2$s</string>
+    <string name="llm_failed">失败：%1$s</string>
+    <string name="error_offsets">用逗号分隔的分钟数，如 60,10,0（最多 %1$d 个）</string>
+    <string name="error_ring">0–%1$d 分钟，0 = 一直响到确认</string>
+    <string name="error_snooze">用逗号分隔的分钟数，如 5,10,30,60</string>
+    <string name="toast_black_added">已添加</string>
+    <string name="toast_black_added_archived">已添加，顺手归档了 %1$d 条命中的提醒</string>
+    <string name="toast_listener_need">请先开启通知使用权</string>
+    <string name="toast_listener_ok">✅ 监听正常：能收到通知</string>
+    <string name="toast_listener_fail">❌ 没收到测试通知，正在尝试重连监听服务…</string>
+    <string name="toast_copied">已复制</string>
+    <string name="attempts_title">最近通知处理记录</string>
+    <string name="diagnostic_clip">NotiAlarm 诊断</string>
+    <string name="toast_play_failed">无法播放：%1$s</string>
+    <string name="black_kind_conversation">群聊</string>
+    <string name="black_kind_keyword">关键词</string>
+    <string name="black_kind_pkg">应用</string>
+    <string name="toast_blocked">已屏蔽</string>
+    <string name="toast_retry_kept">还没识别到时间，已保留在列表里</string>
+    <string name="toast_attempts_empty">还没有通知处理记录</string>
+
+    <string name="copy">复制</string>
+    <string name="block_app">屏蔽此应用</string>
+    <string name="toast_never_record">以后不再记录</string>
+    <string name="perm_warning_access">⚠ 通知使用权未开启，点这里去设置</string>
+    <string name="perm_warning_disconnected">⚠ 监听服务未连接，点这里检查或重连</string>
+    <string name="hint_time_format">格式：2026-11-01 15:00</string>
+    <string name="error_time">格式：2026-11-01 15:00</string>
+    <string name="error_offsets_short">用逗号分隔的分钟数，如 60,10,0</string>
+    <string name="default_reminder_title">提醒</string>
+    <string name="manual_source">手动添加</string>
+    <string name="source_fmt">来自 %1$s</string>
+    <string name="toast_created">已创建，并滚动到这条提醒</string>
+    <string name="dropped_reason_no_body">通知没有正文（可能关闭了“通知显示消息详情”）</string>
+    <string name="dropped_reason_summary">群聊汇总里没有可识别的时间</string>
+    <string name="dropped_reason_ongoing">常驻通知里没有可识别的时间</string>
+    <string name="dropped_reason_no_time">没有识别到时间</string>
+    <string name="dropped_reason_not_selected">这个 App 不在监听列表</string>
+
+    <string name="date_md_pattern">M月d日</string>
+    <string name="date_md_time_pattern">M/d HH:mm</string>
+    <string name="offset_ahead">提前%1$s</string>
+    <string name="list_separator">、</string>
+    <string-array name="weekdays">
+        <item>周一</item><item>周二</item><item>周三</item><item>周四</item><item>周五</item><item>周六</item><item>周日</item>
+    </string-array>
+    <string name="time_remaining">还有%1$s</string>
+    <string name="snooze_custom">自定义…</string>
+    <string name="alarm_closed_once_only">已关闭本次响铃</string>
+    <string name="alarm_confirmed">已彻底关闭：这条提醒以后不会再响</string>
+    <string name="action_ok">确定</string>
+    <string name="perm_listener_desc">读取微信、QQ 等 App 的通知</string>
+    <string name="time_day">1天</string>
+    <string name="log_jump_ok">已跳回原通知 · %1$s</string>
+    <string name="log_jump_app">原通知已消失，已打开 %1$s</string>
+    <string name="log_jump_failed">无法跳转：原通知已消失，或来源 App 已卸载</string>
+    <string name="diag_service_connected">监听服务：已连接</string>
+    <string name="diag_service_disconnected">监听服务：未连接（点上面的“测试通知监听”或重连）</string>
+    <string name="diag_connected_at">（上次连接 %1$s）</string>
+    <string name="diag_today">今日：收到 %1$d 条 · 进入解析 %2$d 条 · 创建 %3$d 条 · 未记录 %4$d 条</string>
+    <string name="diag_last">最近一条：%1$s %2$s</string>
+    <string name="diag_unknown_app">未知应用</string>
+    <string name="diag_restart_hint">如果手机刚重启或刚覆盖安装，请在通知使用权里把本应用关掉再打开一次。</string>
+    <string name="proc_no_body">通知没有正文</string>
+    <string name="proc_dup_90">90 秒内重复通知，已忽略</string>
+    <string name="proc_dup_90_toast">重复通知，已忽略</string>
+    <string name="proc_unrecognized">%1$s [%2$s] 未识别：%3$s%4$s</string>
+    <string name="proc_llm_error">（大模型出错：%1$s）</string>
+    <string name="proc_no_time">没有识别到时间%1$s</string>
+    <string name="proc_seen">%1$s [%2$s] 7 天内已有相同提醒，已忽略</string>
+    <string name="proc_same">已有相同提醒</string>
+    <string name="proc_save_failed">%1$s [%2$s] 保存失败</string>
+    <string name="proc_save_failed_toast">保存失败，提醒未写入</string>
+    <string name="proc_schedule_failed">已保存，但闹钟排程失败：%1$s</string>
+    <string name="proc_no_future">已创建，但没有未来的响铃时间（时间可能已过）</string>
+    <string name="proc_created">已创建：%1$s %2$s</string>
+    <string name="proc_error">%1$s [%2$s] 处理异常：%3$s</string>
+    <string name="proc_error_toast">处理失败：%1$s</string>
+    <string name="app_name_zh">通知闹钟</string>
+    <string name="app_name_en">NotifyClock</string>
+</resources>
