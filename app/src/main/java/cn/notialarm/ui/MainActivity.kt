@@ -24,7 +24,6 @@ import cn.notialarm.Reminders
 import cn.notialarm.SourceLauncher
 import cn.notialarm.alarm.AlarmScheduler
 import cn.notialarm.data.ActivityLog
-import cn.notialarm.data.Diag
 import cn.notialarm.data.DroppedStore
 import cn.notialarm.data.Incoming
 import cn.notialarm.data.Prefs
@@ -41,7 +40,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emptyText: TextView
     private lateinit var emptyDropped: TextView
     private lateinit var logText: TextView
-    private lateinit var tvDiag: TextView
     private lateinit var tvPermWarning: TextView
     private lateinit var tvListHint: TextView
     private lateinit var btnActive: Button
@@ -60,7 +58,6 @@ class MainActivity : AppCompatActivity() {
         emptyText = findViewById(R.id.emptyText)
         emptyDropped = findViewById(R.id.emptyDropped)
         logText = findViewById(R.id.logText)
-        tvDiag = findViewById(R.id.tvDiag)
         tvPermWarning = findViewById(R.id.tvPermWarning)
         tvListHint = findViewById(R.id.tvListHint)
         btnActive = findViewById(R.id.btnActive)
@@ -121,13 +118,11 @@ class MainActivity : AppCompatActivity() {
         Reminders.onChange = {
             renderReminders()
             renderLog()
-            renderDiag()
             renderDropped()
             renderPermWarning()
         }
         NotifyListener.onStateChanged = {
             renderPermWarning()
-            renderDiag()
         }
         // 权限开着但服务没连上：自动重连一次
         if (Permissions.listenerGranted(this) && !NotifyListener.connected) NotifyListener.rebind(this)
@@ -136,7 +131,6 @@ class MainActivity : AppCompatActivity() {
         renderPermWarning()
         renderReminders()
         renderLog()
-        renderDiag()
         renderDropped()
     }
 
@@ -378,10 +372,6 @@ class MainActivity : AppCompatActivity() {
             }
             droppedContainer.addView(v)
         }
-    }
-
-    private fun renderDiag() {
-        tvDiag.text = Diag.summary(this, NotifyListener.connected)
     }
 
     private fun renderLog() {
