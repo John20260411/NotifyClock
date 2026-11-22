@@ -181,22 +181,28 @@ class SettingsActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnPickRingtone).setOnClickListener {
             stopPreview()
-            pickRingtone.launch(
-                Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_RINGTONE)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                    .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "选择闹钟铃声")
-                    .putExtra(
-                        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
-                        soundUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
-                            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-                    )
-            )
-        }
-        findViewById<Button>(R.id.btnPickMusic).setOnClickListener {
-            stopPreview()
-            pickMusic.launch(arrayOf("audio/*"))
+            MaterialAlertDialogBuilder(this)
+                .setTitle("更换铃声")
+                .setItems(arrayOf("系统铃声", "本地音乐")) { _, which ->
+                    if (which == 0) {
+                        pickRingtone.launch(
+                            Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_RINGTONE)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                                .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "选择闹钟铃声")
+                                .putExtra(
+                                    RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                                    soundUri.takeIf { it.isNotBlank() }?.let(Uri::parse)
+                                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
+                                )
+                        )
+                    } else {
+                        pickMusic.launch(arrayOf("audio/*"))
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
         btnPreview.setOnClickListener { if (preview == null) startPreview() else stopPreview() }
         rgVolume.setOnCheckedChangeListener { _, _ -> if (preview != null) { stopPreview(); startPreview() } }

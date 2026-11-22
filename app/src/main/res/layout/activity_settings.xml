@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -73,41 +74,69 @@
             android:layout_height="wrap_content"
             android:text="振动" />
 
-        <TextView
-            android:id="@+id/tvSound"
-            style="@style/FieldLabel" />
-
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_marginTop="10dp"
+            app:cardBackgroundColor="@color/app_surface"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/app_outline"
+            app:strokeWidth="1dp">
 
-            <Button
-                android:id="@+id/btnPickRingtone"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="系统铃声" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <Button
-                android:id="@+id/btnPickMusic"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="本地音乐" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="铃声"
+                    android:textColor="@color/app_text"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btnPreview"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="试听" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tvSound"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/app_text_muted"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickRingtone"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="更换铃声"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        app:cornerRadius="14dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPreview"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="88dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="10dp"
+                        android:text="试听"
+                        android:textAllCaps="false"
+                        android:textSize="14sp"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="@color/app_outline" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView style="@style/FieldLabel" android:text="音量跟随" />
 
