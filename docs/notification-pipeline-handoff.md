@@ -580,6 +580,28 @@ adb shell run-as cn.notialarm cat shared_prefs/settings.xml
 
 需要特别确认：QQ 能用，说明 `NotificationListenerService` 本身不是完全没绑定；但不能证明微信包名一定在 `pkgs` 里。
 
+### 10.1 真机直连复核（2026-11-22 18:08）
+
+手机通过 USB 调试连上后，直接读取了应用的真实状态（只读命令）：
+
+| 检查项 | 结果 |
+|---|---|
+| 设备 / 系统 | `PKR110`，Android 16 |
+| 应用版本 | `cn.notialarm` versionCode 8 / versionName 0.3.2 |
+| 通知使用权 | `enabled_notification_listeners` 包含 `cn.notialarm/cn.notialarm.NotifyListener` |
+| 监听列表 | `pkgs` 包含 `com.tencent.mm`、`com.tencent.mobileqq`、`com.tencent.tim`、`cn.edu.hit.welink`；未开启 `monitor_all` |
+| 当日诊断 | `received=1775`、`allowed=86`、`created=17`、`dropped=525` |
+| 未记录（微信） | 3 条，原因全部是“没有识别到时间”，没有出现“有时间却被判为无时间”的样本 |
+| 最近活动日志 | `18:06 [微信 · 听觉中心-语音对话组] 已创建：明天 周一 11:00 ...` |
+| 提醒存储 | 26 条；active 中有一条来源为微信、时间为 11-23 11:00 的提醒 |
+
+结论：
+
+- 真机上微信的实时回调、正文提取、时间解析、创建提醒**都是通的**，至少对“明天 周一 11:00”这类文本成立；
+- 因而 H1（微信不在监听列表）在这台设备上不成立；
+- 用户 15:52 截图里 `待处理 11 / 归档 25` 但只显示 2 张卡片，正是 `RecyclerView` 在 `ScrollView` 内 `wrap_content` 只量首屏导致的**显示截断**；微信提醒很可能已经创建，只是没有显示出来。0.3.2 的 `contentHeight()` 修复的就是这一点；
+- 仍不能排除某些特定通知形态（群聊汇总无正文、系统脱敏、分身包名）会漏，但当前证据不支持“微信完全无法识别”。
+
 ---
 
 ## 11. 关键源码索引
