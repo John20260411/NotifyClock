@@ -16,14 +16,29 @@ android {
         applicationId = "cn.notialarm"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "0.3.8"
+        versionCode = 15
+        versionName = "0.3.9"
+    }
+
+    signingConfigs {
+        if (!System.getenv("RELEASE_STORE_FILE").isNullOrBlank()) {
+            create("release") {
+                storeFile = file(System.getenv("RELEASE_STORE_FILE"))
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (!System.getenv("RELEASE_STORE_FILE").isNullOrBlank()) {
+                signingConfigs.getByName("release")
+            } else {
+                null
+            }
         }
     }
     compileOptions {

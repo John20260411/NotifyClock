@@ -13,7 +13,7 @@
     <string name="action_open_source">Open original</string>
     <string name="action_close_once">Dismiss this ring only</string>
     <string name="action_close_forever">Silence this reminder permanently</string>
-    <string name="action_confirm_off">Silence permanently</string>
+    <string name="action_confirm_off">Close forever</string>
     <string name="action_go_enable">Enable</string>
     <string name="action_go_settings">Open settings</string>
     <string name="action_retry">Retry detection</string>

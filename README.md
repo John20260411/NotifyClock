@@ -2,7 +2,16 @@
 
 ![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-234B43)
 
-监听微信、QQ、哈工大 APP 等任意 App 的通知，识别出里面的时间，自动创建提醒：
+[**English**](README.en.md) | 简体中文
+
+[**下载签名 APK**](https://github.com/John20260411/NotifyClock/releases/latest) ·
+[English README](README.en.md) ·
+[商业授权](COMMERCIAL.md)
+
+![NotifyClock demo](docs/demo.gif)
+
+**NotifyClock** turns dates and times inside chat notifications into reliable
+Android alarms. **通知闹钟**监听微信、QQ、哈工大 APP 等任意 App 的通知，识别出里面的时间，自动创建提醒：
 到点前按你设定的提前量（比如 60、10、0 分钟）响铃、振动、弹窗。
 
 ## 许可证与商业使用
@@ -19,6 +28,11 @@ License 1.0.0**：允许个人学习、研究、实验、爱好项目，以及�
 
 说明：这是 source-available 许可证，不是 OSI 认可的开源许可证。
 作者保留将本项目（包括社区贡献）用于商业授权的权利。
+
+## 0.3.9 更新
+
+- 英文版提醒卡片的“彻底关闭”按钮改为 `Close forever`，避免 `Silence permanently` 在窄按钮里折成两行。
+- 版本号 0.3.9（versionCode 15）。
 
 ## 0.3.8 更新
 
@@ -108,8 +122,8 @@ License 1.0.0**：允许个人学习、研究、实验、爱好项目，以及�
 
 ## 安装
 
-1. 把 `app/build/outputs/apk/debug/app-debug.apk` 发到手机（微信文件传输助手、QQ、数据线都行），点开安装。
-   提示“未知来源”时允许安装。
+1. 从 [Releases](https://github.com/John20260411/NotifyClock/releases/latest) 下载签名 APK（`NotifyClock-<版本>-release.apk`），
+   发到手机点开安装。提示“未知来源”时允许安装。
 2. 打开“通知闹钟”，点右上角齿轮进入“设置”，在顶部“权限”里逐项点“去开启”：
    - **通知使用权**：必须开启，否则读不到其他 App 的通知
    - **发送通知**、**精确闹钟**、**全屏弹窗**
