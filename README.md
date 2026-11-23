@@ -1,7 +1,24 @@
 # 通知闹钟（NotiAlarm）
 
+![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-234B43)
+
 监听微信、QQ、哈工大 APP 等任意 App 的通知，识别出里面的时间，自动创建提醒：
 到点前按你设定的提前量（比如 60、10、0 分钟）响铃、振动、弹窗。
+
+## 许可证与商业使用
+
+本项目源码公开（source-available），采用 **PolyForm Noncommercial
+License 1.0.0**：允许个人学习、研究、实验、爱好项目，以及慈善、教育、
+公共研究、公共安全/健康、环保和政府机构的非商业使用；未经作者书面授权，
+不得用于商业用途。
+
+- 完整条款：[LICENSE](LICENSE)
+- 商业授权范围与申请方式：[COMMERCIAL.md](COMMERCIAL.md)
+- 贡献代码前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，并接受
+  [CLA.md](CLA.md)；未接受 CLA 的 PR 不会被合并。
+
+说明：这是 source-available 许可证，不是 OSI 认可的开源许可证。
+作者保留将本项目（包括社区贡献）用于商业授权的权利。
 
 ## 0.3.8 更新
 
