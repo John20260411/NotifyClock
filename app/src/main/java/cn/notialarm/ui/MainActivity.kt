@@ -274,11 +274,11 @@ class MainActivity : AppCompatActivity() {
             toggleGroup.check(R.id.btnActive)
         }
         renderReminders()
-        reminderList.post {
+        reminderList.post outer@{
             resizeReminderList()
-            reminderList.post {
+            reminderList.post inner@{
                 val index = adapter.indexOf(r.id)
-                if (index < 0) return@post
+                if (index < 0) return@inner
                 reminderList.scrollToPosition(index)
                 val vh = reminderList.findViewHolderForAdapterPosition(index)
                 val target = if (vh != null) {
