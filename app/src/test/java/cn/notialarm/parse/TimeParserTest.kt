@@ -63,4 +63,22 @@ class TimeParserTest {
         assertEquals(true, TimeParser.hasTimeHint("下周三交论文"))
         assertEquals(false, TimeParser.hasTimeHint("好的收到"))
     }
+
+    @Test fun tencentMeetingNotice() {
+        val text = """@全体成员 
+11 邀请您参加腾讯会议
+会议主题：11预定的会议
+会议时间：2026/11/26 19:30-20:25 (GMT+08:00) 中国标准时间 - 北京
+
+点击链接入会，或添加至会议列表：
+https://meeting.tencent.com/dm/9CIL3my8292R
+
+#腾讯会议：311-894-324
+
+复制该信息，打开手机腾讯会议即可参与
+这个是周四晚上的会议号 大家提前预留好时间哦～"""
+        val r = TimeParser.parse(text, now)
+        assertEquals(dt(11, 26, 19, 30), r?.time)
+        assertEquals(true, TimeParser.hasTimeHint(text))
+    }
 }
