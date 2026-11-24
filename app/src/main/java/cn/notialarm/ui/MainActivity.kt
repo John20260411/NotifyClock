@@ -120,38 +120,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         val input = findViewById<EditText>(R.id.inputText)
-        findViewById<Button>(R.id.btnParse).setOnClickListener {
-            val text = input.text.toString()
-            if (text.isBlank()) return@setOnClickListener
-            Processor.submit(applicationContext, getString(R.string.manual_source), text) { r, msg ->
-                runOnUiThread {
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-                    renderLog()
-                    if (r != null) {
-                        focusReminder(r)
-                        input.text.clear()
-                    } else {
-                        renderReminders()
-                    }
-                }
-            }
-        }
-        findViewById<Button>(R.id.btnAdd).setOnClickListener { showEdit(null) }
         findViewById<Button>(R.id.btnPasteClipboard).setOnClickListener {
             val clip = getSystemService(ClipboardManager::class.java)?.primaryClip
-            val text = if (clip != null && clip.itemCount > 0) {
+            val clipText = if (clip != null && clip.itemCount > 0) {
                 clip.getItemAt(0).coerceToText(this).toString().trim()
             } else {
                 ""
             }
+            // 剪贴板为空时，仍允许识别输入框里手动输入的文字，避免输入框变成死路。
+            val text = clipText.ifBlank { input.text.toString().trim() }
             if (text.isEmpty()) {
                 toast(getString(R.string.toast_clipboard_empty))
                 return@setOnClickListener
             }
             input.setText(text)
             input.setSelection(text.length)
-            findViewById<Button>(R.id.btnParse).performClick()
+            submitInput(text)
         }
+        findViewById<Button>(R.id.btnAdd).setOnClickListener { showEdit(null) }
         tvPermWarning.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -167,6 +153,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         handleIntent(intent)
+    }
+
+    private fun submitInput(text: String) {
+        if (text.isBlank()) return
+        val input = findViewById<EditText>(R.id.inputText)
+        Processor.submit(applicationContext, getString(R.string.manual_source), text) { r, msg ->
+            runOnUiThread {
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                renderLog()
+                if (r != null) {
+                    focusReminder(r)
+                    input.text.clear()
+                } else {
+                    renderReminders()
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -200,7 +203,7 @@ class MainActivity : AppCompatActivity() {
             input.setText(text)
             input.setSelection(text.length)
             mainScroll.smoothScrollTo(0, 0)
-            findViewById<Button>(R.id.btnParse).performClick()
+            submitInput(text)
         }
         return true
     }

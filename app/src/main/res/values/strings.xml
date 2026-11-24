@@ -22,8 +22,8 @@
     <string name="section_try">试一试</string>
     <string name="input_hint">粘贴一条消息，例如：明天下午3点在正心楼开组会</string>
     <string name="chat_hint_title">聊天界面里没有通知？</string>
-    <string name="chat_hint_body">微信/QQ 在聊天界面内通常不发系统通知，“处理文本”入口也可能不显示。最稳的方式：长按消息复制，再点下面的“从剪贴板粘贴并识别”；也可以手动粘贴到输入框。</string>
-    <string name="btn_paste_clipboard">从剪贴板粘贴并识别</string>
+    <string name="chat_hint_body">当前台处于微信、QQ 等软件中时通常不发出通知。长按消息复制，回到这里自主添加</string>
+    <string name="btn_paste_clipboard">粘贴并识别</string>
     <string name="toast_clipboard_empty">剪贴板里没有文字</string>
     <string name="btn_parse_create">识别并创建</string>
     <string name="btn_manual_add">手动添加</string>
