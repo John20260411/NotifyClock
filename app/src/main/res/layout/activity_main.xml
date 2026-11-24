@@ -139,6 +139,17 @@
                             android:textAllCaps="false"
                             app:cornerRadius="16dp" />
                     </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPasteClipboard"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="2dp"
+                        android:minHeight="0dp"
+                        android:text="@string/btn_paste_clipboard"
+                        android:textAllCaps="false"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

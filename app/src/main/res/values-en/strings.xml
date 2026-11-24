@@ -22,7 +22,9 @@
     <string name="section_try">Try it</string>
     <string name="input_hint">Paste a message, e.g. “Group meeting at 3 pm tomorrow in Zhengxin Building”</string>
     <string name="chat_hint_title">No notification while chatting?</string>
-    <string name="chat_hint_body">WeChat and QQ usually do not post a notification while you are in the chat. Long-press a message, select the text, then choose Share or Process text to NotifyClock. You can also paste it into the box above.</string>
+    <string name="chat_hint_body">WeChat and QQ usually do not post a notification while you are in a chat, and the Process text entry may not appear. The reliable way: copy the message, then tap Paste from clipboard below; you can also paste it into the box.</string>
+    <string name="btn_paste_clipboard">Paste from clipboard</string>
+    <string name="toast_clipboard_empty">No text in the clipboard</string>
     <string name="btn_parse_create">Create</string>
     <string name="btn_manual_add">Add manually</string>
     <string name="section_reminders">Reminders</string>

@@ -1,5 +1,6 @@
 package cn.notialarm.ui
 
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
@@ -136,6 +137,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
         findViewById<Button>(R.id.btnAdd).setOnClickListener { showEdit(null) }
+        findViewById<Button>(R.id.btnPasteClipboard).setOnClickListener {
+            val clip = getSystemService(ClipboardManager::class.java)?.primaryClip
+            val text = if (clip != null && clip.itemCount > 0) {
+                clip.getItemAt(0).coerceToText(this).toString().trim()
+            } else {
+                ""
+            }
+            if (text.isEmpty()) {
+                toast(getString(R.string.toast_clipboard_empty))
+                return@setOnClickListener
+            }
+            input.setText(text)
+            input.setSelection(text.length)
+            findViewById<Button>(R.id.btnParse).performClick()
+        }
         tvPermWarning.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
