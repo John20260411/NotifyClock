@@ -159,8 +159,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (handleExternalText(intent)) return
         val id = intent?.getIntExtra(Notifier.EXTRA_EDIT_ID, -1) ?: -1
         if (id > 0) ReminderStore.get(this, id)?.let { showEdit(it) }
+    }
+
+    /**
+     * 在微信/QQ 聊天界面里没有系统通知时，可以从文字选择菜单“处理文本”或系统分享发送到本应用。
+     * 这是零额外权限的兜底；自动读取前台聊天内容需要用户另行开启无障碍服务。
+     */
+    private fun handleExternalText(intent: Intent?): Boolean {
+        if (intent == null) return false
+        val text = when (intent.action) {
+            Intent.ACTION_PROCESS_TEXT ->
+                intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            else -> null
+        }?.trim()
+        if (text.isNullOrEmpty()) return false
+        intent.removeExtra(Intent.EXTRA_PROCESS_TEXT)
+        intent.removeExtra(Intent.EXTRA_TEXT)
+        window.decorView.post {
+            val input = findViewById<EditText>(R.id.inputText)
+            input.setText(text)
+            input.setSelection(text.length)
+            mainScroll.smoothScrollTo(0, 0)
+            findViewById<Button>(R.id.btnParse).performClick()
+        }
+        return true
     }
 
     override fun onResume() {
